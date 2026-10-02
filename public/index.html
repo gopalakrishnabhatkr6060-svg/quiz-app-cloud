@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+  <title>Quiz Platform — Cloud Edition</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #151d30;
+      --surface-light: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --success: #10b981;
+      --danger: #ef4444;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    .hero {
+      text-align: center;
+      padding: 60px 24px 40px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto 30px;
+      line-height: 1.6;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat .val {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .hero-stat .label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .quiz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .quiz-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .quiz-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+    }
+    .quiz-card:hover {
+      border-color: #64748b;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    .quiz-card.js::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+    .quiz-card.transformer::before { background: linear-gradient(90deg, #6366f1, #ec4899); }
+    .quiz-card.os::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+    .quiz-card.finetuning::before { background: linear-gradient(90deg, #8b5cf6, #38bdf8); }
+
+    .card-icon {
+      font-size: 2.4rem;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .meta-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .card-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      text-align: center;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      color: white;
+      transition: all 0.2s;
+    }
+    .card-btn.js-btn { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .card-btn.js-btn:hover { opacity: 0.9; }
+    .card-btn.transformer-btn { background: linear-gradient(135deg, #6366f1, #ec4899); }
+    .card-btn.transformer-btn:hover { opacity: 0.9; }
+    .card-btn.os-btn { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+    .card-btn.os-btn:hover { opacity: 0.9; }
+    .card-btn.finetuning-btn { background: linear-gradient(135deg, #8b5cf6, #38bdf8); }
+    .card-btn.finetuning-btn:hover { opacity: 0.9; }
+
+    .bottom-bar {
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+    }
+    .bottom-bar a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .bottom-bar a:hover { text-decoration: underline; }
+
+    .cloud-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #6ee7b7;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-badge">☁️ Powered by Supabase Cloud Database</div>
+    <h1>Technical Quiz Platform</h1>
+    <p>
+      Test your knowledge in JavaScript, Transformer Architecture, Operating Systems,
+      and LLM Fine-Tuning. All results stored securely in the cloud — accessible from anywhere.
+    </p>
+    <div class="hero-stats" id="hero-stats">
+      <div class="hero-stat"><div class="val" id="h-total">—</div><div class="label">Total Attempts</div></div>
+      <div class="hero-stat"><div class="val" id="h-avg">—</div><div class="label">Avg Score</div></div>
+      <div class="hero-stat"><div class="val" id="h-pass">—</div><div class="label">Pass Rate</div></div>
+      <div class="hero-stat"><div class="val" id="h-quizzes">4</div><div class="label">Quizzes Available</div></div>
+    </div>
+    <div class="cloud-badge">🟢 Cloud Database Connected — Data persists across devices</div>
+  </div>
+
+  <div class="quiz-grid">
+    <div class="quiz-card js">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">JavaScript Assessment</div>
+      <div class="card-desc">
+        Deep-dive into closures, prototypes, event loop, async/await, ES6+ features,
+        and advanced JS patterns used in real-world applications.
+      </div>
+      <div class="card-meta">
+        <span class="meta-pill">30 Questions</span>
+        <span class="meta-pill">30 Minutes</span>
+        <span class="meta-pill">70% to Pass</span>
+      </div>
+      <a href="/js-quiz" class="card-btn js-btn">Start JavaScript Quiz →</a>
+    </div>
+
+    <div class="quiz-card transformer">
+      <div class="card-icon">🧠</div>
+      <div class="card-title">Transformer Architecture</div>
+      <div class="card-desc">
+        Based on "Attention Is All You Need" — self-attention mechanics, multi-head
+        projections, positional encodings, encoder-decoder architecture, and training dynamics.
+      </div>
+      <div class="card-meta">
+        <span class="meta-pill">30 Questions</span>
+        <span class="meta-pill">30 Minutes</span>
+        <span class="meta-pill">70% to Pass</span>
+      </div>
+      <a href="/transformer-quiz" class="card-btn transformer-btn">Start Transformer Quiz →</a>
+    </div>
+
+    <div class="quiz-card os">
+      <div class="card-icon">💻</div>
+      <div class="card-title">Operating Systems</div>
+      <div class="card-desc">
+        Process management, memory allocation, file systems, CPU scheduling,
+        deadlocks, virtual memory, and OS kernel internals.
+      </div>
+      <div class="card-meta">
+        <span class="meta-pill">30 Questions</span>
+        <span class="meta-pill">30 Minutes</span>
+        <span class="meta-pill">70% to Pass</span>
+      </div>
+      <a href="/os-quiz" class="card-btn os-btn">Start OS Quiz →</a>
+    </div>
+
+    <div class="quiz-card finetuning">
+      <div class="card-icon">🚀</div>
+      <div class="card-title">LLM Fine-Tuning</div>
+      <div class="card-desc">
+        LoRA, QLoRA, PEFT, dataset preparation, training hyperparameters,
+        evaluation metrics, RLHF, DPO, and production deployment strategies.
+      </div>
+      <div class="card-meta">
+        <span class="meta-pill">30 Questions</span>
+        <span class="meta-pill">30 Minutes</span>
+        <span class="meta-pill">70% to Pass</span>
+      </div>
+      <a href="/finetuning-quiz" class="card-btn finetuning-btn">Start Fine-Tuning Quiz →</a>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <a href="/dashboard">📊 Open Results Dashboard & Leaderboard →</a>
+  </div>
+
+  <script>
+    // Load live stats from cloud
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(stats => {
+        document.getElementById('h-total').textContent = stats.total_submissions || 0;
+        document.getElementById('h-avg').textContent = stats.avg_percentage ? Math.round(stats.avg_percentage) + '%' : '0%';
+        const passRate = stats.total_submissions
+          ? Math.round((stats.passed_count / stats.total_submissions) * 100) + '%'
+          : '0%';
+        document.getElementById('h-pass').textContent = passRate;
+      })
+      .catch(() => {
+        document.getElementById('h-total').textContent = '0';
+        document.getElementById('h-avg').textContent = '0%';
+        document.getElementById('h-pass').textContent = '0%';
+      });
+  </script>
+  <script>
+    // Register Service Worker for PWA install
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => console.log('✅ Service Worker registered'))
+        .catch(err => console.log('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>

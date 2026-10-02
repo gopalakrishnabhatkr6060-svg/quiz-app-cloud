@@ -1,0 +1,1672 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operating Systems (Phase 1) â€” Foundations, Dual-Mode, Syscalls & Interrupts</title>
+  <style>
+    :root {
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --bg: #0b0f19;
+      --surface: #151d30;
+      --surface-light: #1e293b;
+      --surface-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --purple: #a855f7;
+      --accent: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #041026;
+      font-size: 1.1rem;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .timer-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.05em;
+    }
+
+    .timer-container.warning {
+      color: var(--danger);
+      border-color: var(--danger);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to { opacity: 0.6; }
+    }
+
+    .btn-submit-exam {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-submit-exam:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+
+    /* Start Screen */
+    .start-screen {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 36px;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .start-screen h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 24px 0;
+    }
+
+    .meta-card {
+      background: var(--surface-light);
+      border: 1px solid var(--surface-border);
+      padding: 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .meta-card .val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .meta-card .label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .instructions-list {
+      margin: 20px 0;
+      padding-left: 20px;
+      color: #cbd5e1;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .instructions-list li {
+      margin-bottom: 8px;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #041026;
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6);
+    }
+
+    /* Exam Arena Layout */
+    .exam-arena {
+      display: none;
+      flex: 1;
+      padding: 20px;
+      gap: 20px;
+      max-width: 1500px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .question-panel {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .q-number-pill {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+    }
+
+    .q-badge-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .badge-category {
+      background: var(--surface-light);
+      color: var(--text-muted);
+      border: 1px solid var(--surface-border);
+    }
+
+    .badge-marks {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .question-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      color: #f1f5f9;
+    }
+
+    pre {
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.9rem;
+      color: #38bdf8;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .options-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .option-card {
+      background: #0d1322;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .option-card:hover {
+      border-color: #475569;
+      background: var(--surface-light);
+    }
+
+    .option-card.selected {
+      border-color: var(--primary);
+      background: rgba(14, 165, 233, 0.12);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .opt-letter {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--surface-light);
+      border: 1px solid var(--surface-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .option-card.selected .opt-letter {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .opt-text {
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #e2e8f0;
+      padding-top: 3px;
+    }
+
+    .question-footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 18px;
+      border-top: 1px solid var(--surface-border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn-action {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border-color: var(--surface-border);
+      color: var(--text-muted);
+    }
+    .btn-clear:hover { background: var(--surface-light); color: var(--text); }
+
+    .btn-mark {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      color: #d8b4fe;
+    }
+    .btn-mark:hover { background: rgba(168, 85, 247, 0.25); }
+
+    .btn-nav-prev {
+      background: var(--surface-light);
+      color: var(--text);
+      border-color: var(--surface-border);
+    }
+    .btn-nav-prev:hover { background: #334155; }
+
+    .btn-nav-next {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-nav-next:hover { background: var(--primary-dark); }
+
+    /* Palette Sidebar */
+    .palette-sidebar {
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .palette-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .dot-ans { background: var(--success); }
+    .dot-not-ans { background: var(--danger); }
+    .dot-marked { background: var(--purple); }
+    .dot-not-visited { background: #334155; }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 20px;
+    }
+
+    .palette-btn {
+      height: 40px;
+      background: #090d16;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .palette-btn:hover { border-color: #64748b; }
+    .palette-btn.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .palette-btn.answered { background: var(--success) !important; border-color: var(--success) !important; color: #fff !important; }
+    .palette-btn.marked { background: var(--purple) !important; border-color: var(--purple) !important; color: #fff !important; }
+    .palette-btn.not-answered { background: var(--danger) !important; border-color: var(--danger) !important; color: #fff !important; }
+
+    .summary-card {
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.82rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .summary-metric {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+    .summary-metric strong { color: var(--text); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-dialog {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 520px;
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .modal-dialog h3 {
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      color: #f8fafc;
+    }
+
+    .modal-stats {
+      margin: 18px 0;
+      background: #090d16;
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .modal-stat-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* Scorecard & Review Screen */
+    .report-screen {
+      display: none;
+      max-width: 1100px;
+      width: 100%;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .scorecard-banner {
+      background: linear-gradient(135deg, #151d30, #090d16);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 36px;
+      text-align: center;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .score-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+
+    .badge-pass { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .badge-fail { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+
+    .score-big {
+      font-size: 3.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .score-sub {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+
+    .report-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .report-metric-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .report-metric-card .num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .report-metric-card .desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .sol-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 32px 0 16px 0;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .sol-filters {
+      display: flex;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      background: var(--surface-light);
+      border: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .sol-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .sol-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .sol-q-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #f1f5f9;
+    }
+
+    .sol-ans-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .sol-user-ans {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .sol-user-ans.is-correct {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    .sol-correct-ans {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+
+    .sol-explanation {
+      background: #090d16;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      border-left: 3px solid var(--accent);
+    }
+
+    @media (max-width: 992px) {
+      .exam-arena { flex-direction: column; }
+      .palette-sidebar { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-section">
+      <div class="brand-logo">OS</div>
+      <div>
+        <div class="brand-title">Operating Systems Assessment â€” Phase 1</div>
+        <div class="brand-subtitle">Foundations, Dual-Mode, Syscalls & Interrupts</div>
+      </div>
+    </div>
+    <div class="top-actions" id="header-actions" style="display: none;">
+      <div class="timer-container" id="timer-box">
+        <span>â±ï¸</span>
+        <span id="time-display">25:00</span>
+      </div>
+      <button class="btn-submit-exam" onclick="openSubmitModal()">Finish & Submit Test</button>
+    </div>
+  </header>
+
+  <!-- Stage 1: Welcome & Setup Screen -->
+  <div class="start-screen" id="start-screen">
+    <h1>Operating Systems â€” Phase 1 Mastery Assessment</h1>
+    <p style="color: var(--text-muted); margin-bottom: 16px;">
+      Test your deep conceptual understanding of operating system foundations: abstraction layers, resource management, user vs kernel privilege modes, system calls, interrupt service routines, and synchronous vs asynchronous execution.
+    </p>
+
+    <div class="meta-grid">
+      <div class="meta-card">
+        <div class="val">25</div>
+        <div class="label">Total Questions</div>
+      </div>
+      <div class="meta-card">
+        <div class="val">25 Mins</div>
+        <div class="label">Time Allowed</div>
+      </div>
+      <div class="meta-card">
+        <div class="val">70%</div>
+        <div class="label">Pass Benchmark</div>
+      </div>
+      <div class="meta-card">
+        <div class="val">Supabase Cloud</div>
+        <div class="label">Persistent DB</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: #f1f5f9;">Assessment Guidelines:</h3>
+    <ol class="instructions-list">
+      <li><strong>Dual-Mode & Architecture Focus:</strong> Questions test real OS mechanics, CPU hardware interactions, traps, and interrupt handling.</li>
+      <li><strong>Exam Interface:</strong> Jump to any question using the sidebar palette. Flag uncertain questions using <strong>Mark for Review</strong>.</li>
+      <li><strong>Database Recording:</strong> Upon submission, your score, question-by-question breakdown, and accuracy metrics are stored in the Supabase Cloud Database.</li>
+      <li><strong>Detailed Review:</strong> You will get an exhaustive breakdown with technical explanations immediately after submission.</li>
+    </ol>
+
+    <!-- Candidate Profile Input -->
+    <div style="background: #090d16; border: 1px solid var(--surface-border); border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 12px;">Candidate Profile</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Full Name</label>
+          <input type="text" id="candidate-name" value="Candidate" placeholder="Your Name" style="width: 100%; padding: 10px 12px; background: #151d30; border: 1px solid var(--surface-border); border-radius: 6px; color: #fff; font-size: 0.95rem;" />
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Email Address</label>
+          <input type="email" id="candidate-email" value="candidate@example.com" placeholder="Your Email" style="width: 100%; padding: 10px 12px; background: #151d30; border: 1px solid var(--surface-border); border-radius: 6px; color: #fff; font-size: 0.95rem;" />
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startAssessment()">Start OS Assessment ðŸš€</button>
+  </div>
+
+  <!-- Stage 2: Assessment Arena -->
+  <main class="exam-arena" id="exam-arena">
+    <!-- Left Question Panel -->
+    <section class="question-panel">
+      <div class="question-header">
+        <div class="q-number-pill" id="q-counter">Question 1 of 25</div>
+        <div class="q-badge-group">
+          <span class="badge badge-category" id="q-category">Kernel vs User Space</span>
+          <span class="badge badge-marks">+1.00 / 0.00</span>
+        </div>
+      </div>
+
+      <div class="question-text" id="q-text">Loading question text...</div>
+      
+      <pre id="q-code-container" style="display: none;"><code id="q-code"></code></pre>
+
+      <div class="options-wrapper" id="options-wrapper"></div>
+
+      <div class="question-footer">
+        <div>
+          <button class="btn-action btn-clear" id="btn-clear" onclick="clearCurrentResponse()">Clear Choice</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action btn-mark" id="btn-mark" onclick="toggleMarkForReview()">ðŸ”– Mark for Review</button>
+          <button class="btn-action btn-nav-prev" id="btn-prev" onclick="goToPrevQuestion()">â† Previous</button>
+          <button class="btn-action btn-nav-next" id="btn-next" onclick="saveAndNextQuestion()">Save & Next â†’</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Question Palette Sidebar -->
+    <aside class="palette-sidebar">
+      <div class="palette-title">Question Navigation</div>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="dot dot-ans"></span> Answered</div>
+        <div class="legend-item"><span class="dot dot-not-ans"></span> Not Answered</div>
+        <div class="legend-item"><span class="dot dot-marked"></span> Marked Review</div>
+        <div class="legend-item"><span class="dot dot-not-visited"></span> Not Visited</div>
+      </div>
+
+      <div class="palette-grid" id="palette-container"></div>
+
+      <div class="summary-card">
+        <div class="summary-metric"><span>Answered:</span> <strong id="metric-answered">0</strong></div>
+        <div class="summary-metric"><span>Marked:</span> <strong id="metric-marked">0</strong></div>
+        <div class="summary-metric"><span>Remaining:</span> <strong id="metric-remaining">25</strong></div>
+        <div class="summary-metric"><span>Total:</span> <strong>25</strong></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Submit Confirmation Modal -->
+  <div class="modal-overlay" id="submit-modal">
+    <div class="modal-dialog">
+      <h3>Submit OS Assessment?</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Are you sure you want to finish the exam? You will not be able to modify your choices after submission.
+      </p>
+
+      <div class="modal-stats">
+        <div class="modal-stat-row">
+          <span>Total Questions:</span>
+          <strong>25</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Attempted:</span>
+          <strong id="modal-attempted" style="color: var(--success);">0</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Marked for Review:</span>
+          <strong id="modal-marked" style="color: var(--purple);">0</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Unanswered:</span>
+          <strong id="modal-unanswered" style="color: var(--danger);">25</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action btn-clear" onclick="closeSubmitModal()">Return to Exam</button>
+        <button class="btn-action btn-submit-exam" onclick="confirmSubmitExam()">Confirm & Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 3: Scorecard & Detailed Review -->
+  <div class="report-screen" id="report-screen">
+    <div class="scorecard-banner">
+      <div class="score-badge" id="eval-badge">PASS</div>
+      <div class="score-big" id="final-score-percent">0%</div>
+      <div class="score-sub" id="final-score-details">You scored 0 out of 25 questions correctly.</div>
+
+      <!-- Supabase Cloud Save Notification Banner -->
+      <div id="db-save-status" style="background: rgba(14, 165, 233, 0.12); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; font-size: 0.88rem; color: #7dd3fc; display: inline-block;">
+        â³ Connecting to Supabase Cloud Database...
+      </div>
+
+      <div class="report-metrics-grid">
+        <div class="report-metric-card">
+          <div class="num" id="rep-correct" style="color: var(--success);">0</div>
+          <div class="desc">Correct</div>
+        </div>
+        <div class="report-metric-card">
+          <div class="num" id="rep-incorrect" style="color: var(--danger);">0</div>
+          <div class="desc">Incorrect</div>
+        </div>
+        <div class="report-metric-card">
+          <div class="num" id="rep-skipped" style="color: var(--warning);">0</div>
+          <div class="desc">Skipped</div>
+        </div>
+        <div class="report-metric-card">
+          <div class="num" id="rep-accuracy">0%</div>
+          <div class="desc">Accuracy</div>
+        </div>
+        <div class="report-metric-card">
+          <div class="num" id="rep-time">00:00</div>
+          <div class="desc">Time Spent</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Section Header & Filters -->
+    <div class="sol-section-header">
+      <h3 style="font-size: 1.25rem;">Question-by-Question Technical Solutions</h3>
+      <div class="sol-filters">
+        <button class="filter-btn active" onclick="filterReviews('all', this)">All (25)</button>
+        <button class="filter-btn" onclick="filterReviews('incorrect', this)">Incorrect</button>
+        <button class="filter-btn" onclick="filterReviews('correct', this)">Correct</button>
+        <button class="filter-btn" onclick="filterReviews('skipped', this)">Skipped</button>
+      </div>
+    </div>
+
+    <div id="solutions-container"></div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        id: 1,
+        category: "1. OS Roles",
+        question: "An operating system operates primarily as both a 'Virtual Machine / Abstraction Layer' and a 'Resource Manager'. Which of the following is an example of the OS acting as an Abstraction Layer?",
+        code: null,
+        options: [
+          "Allocating 50ms of CPU time slices equally among 4 competing background processes.",
+          "Providing a simple file read API like read() so apps don't interact with disk track sectors or controller voltage.",
+          "Preventing a misbehaving browser tab from overwriting another process's physical RAM.",
+          "Deciding which thread to awaken when a mutex lock is released."
+        ],
+        correct: 1,
+        explanation: "As an abstraction layer, the OS hides complicated, messy low-level hardware details (like disk sectors, controller cylinders, voltage levels) behind clean, uniform APIs (like open, read, write)."
+      },
+      {
+        id: 2,
+        category: "2. Dual-Mode Operation",
+        question: "Why does modern CPU hardware enforce Dual-Mode Operation (User Mode vs. Kernel/Supervisor Mode)?",
+        code: null,
+        options: [
+          "To allow the CPU to execute user code in 64-bit mode and kernel code in 32-bit mode.",
+          "To protect hardware devices and OS integrity from being corrupted or hijacked by faulty or malicious user programs.",
+          "To double the clock speed of programs when they transition into the kernel.",
+          "To allow user applications to run without requiring physical RAM."
+        ],
+        correct: 1,
+        explanation: "Dual-mode operation establishes a hardware-enforced protection boundary. In User Mode, direct hardware access and privileged instructions are blocked, preventing a rogue or buggy application from crashing the entire machine."
+      },
+      {
+        id: 3,
+        category: "3. CPU Rings & Privilege",
+        question: "In standard x86 CPU architecture, which protection ring corresponds to Kernel Mode, and which corresponds to User Mode?",
+        code: null,
+        options: [
+          "Ring 0 is Kernel Mode; Ring 3 is User Mode.",
+          "Ring 3 is Kernel Mode; Ring 0 is User Mode.",
+          "Ring 1 is Kernel Mode; Ring 2 is User Mode.",
+          "Both run exclusively in Ring 0, separated only by software flags."
+        ],
+        correct: 0,
+        explanation: "The x86 architecture defines 4 protection rings (0 to 3). Ring 0 is the most privileged level where the kernel resides. Ring 3 is the least privileged level where user applications execute. (Rings 1 and 2 are rarely used by modern OSes)."
+      },
+      {
+        id: 4,
+        category: "4. Privileged Instructions",
+        question: "Which of the following operations would be classified as a 'Privileged Instruction' strictly prohibited in User Mode?",
+        code: null,
+        options: [
+          "Performing a 64-bit integer multiplication (IMUL).",
+          "Allocating memory on the local thread call stack using SUB RSP, 64.",
+          "Directly modifying the CPU's Interrupt Flag or writing to control registers like CR3 (Page Table Base).",
+          "Executing a conditional branch instruction (JNE)."
+        ],
+        correct: 2,
+        explanation: "Modifying CPU control registers (CR0-CR4), disabling interrupts (CLI/STI), or directly executing I/O port instructions are privileged because they control hardware state and memory isolation."
+      },
+      {
+        id: 5,
+        category: "5. Privilege Violations",
+        question: "What immediate action is taken by the CPU hardware if an unprivileged program in User Mode attempts to execute the privileged instruction 'CLI' (Clear Interrupt Flag)?",
+        code: null,
+        options: [
+          "The CPU executes the instruction silently without error.",
+          "The CPU hardware generates a General Protection Fault (trap/exception) and transfers control to the OS kernel handler.",
+          "The CPU immediately powers off the computer to prevent physical damage.",
+          "The instruction is queued in a buffer until the program transitions to Ring 0."
+        ],
+        correct: 1,
+        explanation: "The CPU hardware validates the current privilege level before executing privileged opcodes. If attempted from Ring 3, it generates a General Protection Fault (#GP), vectoring execution immediately into the kernel's fault handler, which typically terminates the process (SIGSEGV/Access Violation)."
+      },
+      {
+        id: 6,
+        category: "6. Mode Switching",
+        question: "How does the CPU know whether it is currently executing in User Mode or Kernel Mode?",
+        code: null,
+        options: [
+          "A hardware 'mode bit' located in a CPU status/flags register (e.g., CPL bits in CS register).",
+          "A string variable stored in RAM under '/proc/cpuinfo'.",
+          "The file extension of the currently running binary (.exe vs .sys).",
+          "The operating system checks the user's login password on every CPU cycle."
+        ],
+        correct: 0,
+        explanation: "The CPU maintains hardware state flags (such as the 2-bit Current Privilege Level - CPL in the CS register on x86, or a mode bit in the Program Status Word) that indicate the current privilege level."
+      },
+      {
+        id: 7,
+        category: "7. System Calls",
+        question: "If user-mode applications cannot touch hardware, how does a program like a text editor write saved characters to an NVMe SSD?",
+        code: null,
+        options: [
+          "It opens a raw memory pointer directly to the SSD controller pins.",
+          "It makes a System Call (e.g., write() or WriteFile()), requesting the kernel to safely perform the disk I/O.",
+          "It re-compiles itself with administrator privileges at runtime.",
+          "It halts the CPU and asks the BIOS to bypass the kernel."
+        ],
+        correct: 1,
+        explanation: "System calls are the programmatic interface between a running application and the OS kernel. The user app requests a service, the CPU switches to kernel mode, and the OS carries out the hardware I/O on the app's behalf."
+      },
+      {
+        id: 8,
+        category: "8. Syscall Mechanics",
+        question: "What specific CPU mechanism is used to transition from User Mode to Kernel Mode during a system call?",
+        code: null,
+        options: [
+          "A standard 'CALL' instruction jumping to an address in user space.",
+          "A Trap / Software Interrupt instruction (e.g., SYSCALL, SYSENTER, or INT 0x80).",
+          "An external clock pulse sent from the motherboard crystal oscillator.",
+          "A network socket request over localhost 127.0.0.1."
+        ],
+        correct: 1,
+        explanation: "A trap instruction (like SYSCALL or INT 0x80) is an intentional software interrupt executed by the program that causes the hardware to switch the mode bit to Kernel Mode and jump to a predefined entry point in the kernel."
+      },
+      {
+        id: 9,
+        category: "9. Syscall Dispatch Table",
+        question: "Why does the kernel use a 'System Call Table' (dispatch array indexed by syscall number) rather than allowing user programs to jump to any arbitrary memory address inside the kernel?",
+        code: null,
+        options: [
+          "To speed up integer arithmetic.",
+          "To provide a controlled, vetted entry point so user apps cannot jump past security checks into sensitive kernel routines.",
+          "Because the kernel has no virtual memory support.",
+          "Because user apps run on different CPU cores than the kernel."
+        ],
+        correct: 1,
+        explanation: "If user apps could jump to arbitrary kernel addresses, they could bypass permission checks. The syscall table ensures that only vetted, verified handler functions are invoked with validated parameters."
+      },
+      {
+        id: 10,
+        category: "10. Return from Trap",
+        question: "Once the kernel completes servicing a system call (e.g., sys_read finishes reading bytes), how does execution return to the user application?",
+        code: null,
+        options: [
+          "The CPU executes a 'Return from Trap' instruction (e.g., SYSRET, IRET) which restores user registers and drops privilege back to User Mode.",
+          "The kernel terminates and restarts the user program from main().",
+          "The user program polls the kernel status register until it flips to true.",
+          "The CPU switches off and turns back on."
+        ],
+        correct: 0,
+        explanation: "A special hardware instruction (SYSRET or IRET) restores the saved User Mode program counter, stack pointer, and changes the CPU privilege mode bit back to User Mode (Ring 3)."
+      },
+      {
+        id: 11,
+        category: "11. Interrupts: Hardware vs Software",
+        question: "What is the primary difference between a Hardware Interrupt and a Software Interrupt (Trap)?",
+        code: null,
+        options: [
+          "Hardware interrupts are caused by external physical devices; software interrupts are generated internally by CPU instructions.",
+          "Hardware interrupts only occur when the computer is booting.",
+          "Software interrupts can only be generated by the Linux kernel, not Windows.",
+          "Hardware interrupts never interrupt the CPU while code is executing."
+        ],
+        correct: 0,
+        explanation: "Hardware interrupts originate outside the CPU from physical peripherals (keyboard, timer, NIC). Software interrupts (traps/exceptions) originate from inside the CPU during instruction execution (syscalls, divide-by-zero)."
+      },
+      {
+        id: 12,
+        category: "12. Synchronous Events",
+        question: "What does it mean for an operating system event or exception to be 'Synchronous'?",
+        code: null,
+        options: [
+          "It happens at periodic 1-second intervals.",
+          "It occurs as a direct, reproducible result of the specific CPU instruction currently being executed.",
+          "It is sent to multiple CPU cores simultaneously over a bus.",
+          "It is generated by a physical USB peripheral."
+        ],
+        correct: 1,
+        explanation: "Synchronous events (faults, traps, syscalls) are tied to the execution stream. Re-executing the identical instruction with identical inputs will trigger the event at that exact cycle every time."
+      },
+      {
+        id: 13,
+        category: "13. Asynchronous Events",
+        question: "What does it mean for an interrupt to be 'Asynchronous' in relation to the CPU's instruction stream?",
+        code: null,
+        options: [
+          "It can arrive at any arbitrary moment, completely independent of whatever instruction the CPU is currently executing.",
+          "It only occurs when the CPU is completely idle.",
+          "It occurs sequentially in alphabetical order of device names.",
+          "It never halts or pauses the CPU."
+        ],
+        correct: 0,
+        explanation: "Asynchronous interrupts (like mouse clicks, network packets, timer ticks) are triggered by external hardware signals. Their arrival timing is unpredictable and unrelated to the instruction currently in the CPU pipeline."
+      },
+      {
+        id: 14,
+        category: "14. Event Classification",
+        question: "Which of the following events is ASYNCHRONOUS?",
+        code: null,
+        options: [
+          "A division-by-zero error when evaluating x / y.",
+          "A Page Fault when accessing a virtual address that is currently paged to disk.",
+          "A hardware timer interrupt alerting the scheduler that a process's time quantum has expired.",
+          "An illegal opcode exception when executing an invalid byte sequence."
+        ],
+        correct: 2,
+        explanation: "A timer interrupt is generated by a hardware clock chip outside the CPU's execution stream, making it asynchronous. Division by zero, page faults, and illegal opcodes are synchronous CPU exceptions."
+      },
+      {
+        id: 15,
+        category: "15. Event Classification",
+        question: "Which of the following events is SYNCHRONOUS?",
+        code: null,
+        options: [
+          "A keypress on a mechanical USB keyboard.",
+          "A packet arriving over an Ethernet cable into the Network Interface Card (NIC).",
+          "A hard drive controller signaling that requested sectors have been read into memory.",
+          "A NULL pointer dereference triggering a Segmentation Fault."
+        ],
+        correct: 3,
+        explanation: "A NULL pointer dereference happens at the exact instruction that attempts to read address 0x0. Because it is generated internally by the CPU executing that specific instruction, it is synchronous."
+      },
+      {
+        id: 16,
+        category: "16. Timer Interrupts & Preemption",
+        question: "Why is a hardware Timer Interrupt indispensable for modern multitasking operating systems?",
+        code: null,
+        options: [
+          "It synchronizes the computer's clock with Greenwich Mean Time (GMT).",
+          "It periodically regains control of the CPU for the OS kernel, preventing an infinite loop in a user program from freezing the entire system.",
+          "It prevents the CPU from overheating by turning off cores every few seconds.",
+          "It refreshes dynamic RAM cells so data is not lost."
+        ],
+        correct: 1,
+        explanation: "Without a hardware timer interrupt, a user program inside an infinite loop (e.g., while(1){}) would hog the CPU forever. The timer fires periodically, forcing a context switch into the kernel scheduler."
+      },
+      {
+        id: 17,
+        category: "17. Interrupt Vector Table",
+        question: "What is the purpose of the Interrupt Vector Table (IVT) or Interrupt Descriptor Table (IDT)?",
+        code: null,
+        options: [
+          "It stores the user's encrypted passwords for sudo verification.",
+          "It is an array of memory addresses that point to the kernel's Interrupt Service Routines (ISRs) for each interrupt number.",
+          "It contains a list of all USB devices plugged into the computer.",
+          "It lists all open TCP socket connections."
+        ],
+        correct: 1,
+        explanation: "The IVT/IDT is a table configured in memory by the kernel that associates each interrupt number (0 to 255) with the memory address of the specific handler function (Interrupt Service Routine - ISR) responsible for handling it."
+      },
+      {
+        id: 18,
+        category: "18. Context Saving on Interrupt",
+        question: "When an interrupt occurs while a user application is running, what must the CPU and OS do BEFORE executing the Interrupt Service Routine (ISR)?",
+        code: null,
+        options: [
+          "Save the current state of CPU registers, Program Counter (PC), and flags to the kernel stack.",
+          "Format the swap partition on the hard drive.",
+          "Terminate the running process immediately.",
+          "Clear all cache and RAM memory."
+        ],
+        correct: 0,
+        explanation: "To allow the interrupted program to resume seamlessly later without data corruption, the CPU and OS must save the process's execution context (Program Counter, registers, status flags) onto a stack before the ISR begins modifying registers."
+      },
+      {
+        id: 19,
+        category: "19. Polling vs Interrupts",
+        question: "What is the key disadvantage of using 'Polling' (busy-waiting) instead of 'Interrupt-driven I/O' for slow devices like keyboards?",
+        code: null,
+        options: [
+          "Polling requires extra physical wires on the motherboard.",
+          "Polling wastes enormous CPU cycles repeatedly checking device status in a loop when no input is ready.",
+          "Polling can only be used on solid-state drives.",
+          "Polling crashes the kernel whenever two keys are pressed at once."
+        ],
+        correct: 1,
+        explanation: "In polling, the CPU repeatedly loops asking 'Are you ready yet?'. For slow human inputs (like keystrokes occurring every few hundred milliseconds), this wastes millions of CPU cycles that could have run useful computations."
+      },
+      {
+        id: 20,
+        category: "20. Direct Memory Access (DMA)",
+        question: "How does Direct Memory Access (DMA) reduce CPU overhead during large disk or network transfers?",
+        code: null,
+        options: [
+          "It bypasses RAM and writes data directly into the CPU L1 cache.",
+          "It allows the device controller to transfer blocks of data directly to/from RAM without involving the CPU for every byte, interrupting the CPU only when the entire transfer is complete.",
+          "It replaces the OS kernel with a hardware chip.",
+          "It compresses the data using gzip hardware acceleration."
+        ],
+        correct: 1,
+        explanation: "With DMA, the CPU delegates data transfer to a DMA controller. The controller moves megabytes of data directly between peripheral and RAM, firing a single interrupt only when the whole job is done."
+      },
+      {
+        id: 21,
+        category: "21. Syscall Performance",
+        question: "Why is a System Call generally more computationally expensive than a standard C function call?",
+        code: null,
+        options: [
+          "Syscalls must be downloaded over the internet from kernel.org.",
+          "Syscalls require saving CPU register states, switching privilege rings, flushing/altering TLB or page tables, and validating user pointers.",
+          "Syscalls always reformat the file system before executing.",
+          "Syscalls run in interpreted Python rather than compiled machine code."
+        ],
+        correct: 1,
+        explanation: "A standard function call is just a CALL instruction within user space. A syscall involves CPU privilege elevation, switching stacks, security validation of arguments, potential cache/TLB invalidations, and later returning via an IRET/SYSRET sequence."
+      },
+      {
+        id: 22,
+        category: "22. Crash Isolation",
+        question: "If a user-mode process encounters an unhandled Segmentation Fault (e.g., dereferencing NULL), what is the impact on the operating system?",
+        code: null,
+        options: [
+          "The entire computer crashes with a Blue Screen of Death (BSOD) or Kernel Panic.",
+          "Only that specific user process is terminated by the OS, while the OS kernel and other processes continue running unaffected.",
+          "All files on the hard drive are permanently locked.",
+          "The CPU hardware is permanently damaged."
+        ],
+        correct: 1,
+        explanation: "Because the user app runs in User Mode within an isolated virtual address space, the kernel catches the fault, cleans up the offending process's allocated resources, and terminates it safely without affecting any other running programs."
+      },
+      {
+        id: 23,
+        category: "23. Kernel Panic vs Crash",
+        question: "Under what circumstance does a 'Kernel Panic' (Linux) or 'Blue Screen of Death / BSOD' (Windows) occur?",
+        code: null,
+        options: [
+          "When a user closes Chrome using Task Manager.",
+          "When a fatal unhandled error occurs within Kernel Mode code (e.g., inside a buggy device driver or corrupted kernel data structure).",
+          "When a user enters an incorrect password three times.",
+          "When an asynchronous timer interrupt arrives during a video game."
+        ],
+        correct: 1,
+        explanation: "Code running in Kernel Mode has full access to the machine. If a bug, page fault, or memory corruption occurs inside kernel space (such as in a buggy third-party GPU driver), the kernel cannot safely recover and halts the entire machine."
+      },
+      {
+        id: 24,
+        category: "24. Kernel Architectures",
+        question: "What is the primary difference between a Monolithic Kernel (e.g., traditional Linux) and a Microkernel (e.g., seL4, Minix)?",
+        code: null,
+        options: [
+          "Monolithic kernels run all OS services (file systems, drivers, network stacks) in Kernel Space, whereas Microkernels keep only bare minimum primitives in Kernel Space and run drivers/filesystems in User Space.",
+          "Monolithic kernels support only single-core processors.",
+          "Microkernels cannot run user applications.",
+          "Monolithic kernels do not use dual-mode operation."
+        ],
+        correct: 0,
+        explanation: "A monolithic kernel bundles core logic, filesystems, and device drivers in Ring 0 for performance. A microkernel minimizes Ring 0 code to basic IPC, virtual memory, and scheduling, moving filesystems and drivers to User Space (Ring 3) for greater fault tolerance."
+      },
+      {
+        id: 25,
+        category: "25. Standard Library Wrapper",
+        question: "When writing code in C or Python, why do developers usually call standard library functions (like printf() or open()) rather than writing raw assembly 'syscall' instructions directly?",
+        code: null,
+        options: [
+          "Standard libraries provide portable APIs across different OSes/architectures, handle buffer management, and set up architecture-specific registers before invoking the underlying syscall.",
+          "Modern CPUs physically reject raw syscall instructions compiled from assembly.",
+          "Standard library functions execute entirely in hardware without touching software.",
+          "The kernel only accepts requests written in JavaScript."
+        ],
+        correct: 0,
+        explanation: "Standard C libraries (libc/glibc/musl) abstract away architecture differences (e.g., x86 vs ARM register conventions for syscall numbers) and provide buffering (like user-space stdio buffering in printf) to avoid making redundant, slow system calls."
+      }
+    ];
+
+    // State
+    let currentQIndex = 0;
+    let userAnswers = new Array(questions.length).fill(null);
+    let markedStatus = new Array(questions.length).fill(false);
+    let visitedStatus = new Array(questions.length).fill(false);
+    let examStartTime = null;
+    let timerInterval = null;
+    const TIME_LIMIT_SECONDS = 25 * 60; // 25 mins
+
+    function startAssessment() {
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("exam-arena").style.display = "flex";
+      document.getElementById("header-actions").style.display = "flex";
+
+      examStartTime = Date.now();
+      initTimer();
+      renderPalette();
+      loadQuestion(0);
+    }
+
+    function initTimer() {
+      let remaining = TIME_LIMIT_SECONDS;
+      const display = document.getElementById("time-display");
+      const box = document.getElementById("timer-box");
+
+      timerInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          confirmSubmitExam();
+          return;
+        }
+
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        display.textContent = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+
+        if (remaining < 300) {
+          box.classList.add("warning");
+        }
+      }, 1000);
+    }
+
+    function renderPalette() {
+      const container = document.getElementById("palette-container");
+      container.innerHTML = "";
+
+      questions.forEach((q, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "palette-btn";
+        btn.id = `palette-btn-${idx}`;
+        btn.textContent = idx + 1;
+        btn.onclick = () => loadQuestion(idx);
+        container.appendChild(btn);
+      });
+      updatePaletteMetrics();
+    }
+
+    function updatePaletteMetrics() {
+      let ans = 0;
+      let marked = 0;
+
+      questions.forEach((_, idx) => {
+        const btn = document.getElementById(`palette-btn-${idx}`);
+        if (!btn) return;
+
+        btn.className = "palette-btn";
+        if (idx === currentQIndex) btn.classList.add("active");
+
+        if (markedStatus[idx]) {
+          btn.classList.add("marked");
+          marked++;
+        } else if (userAnswers[idx] !== null) {
+          btn.classList.add("answered");
+          ans++;
+        } else if (visitedStatus[idx]) {
+          btn.classList.add("not-answered");
+        }
+      });
+
+      document.getElementById("metric-answered").textContent = ans;
+      document.getElementById("metric-marked").textContent = marked;
+      document.getElementById("metric-remaining").textContent = questions.length - ans;
+    }
+
+    function loadQuestion(idx) {
+      currentQIndex = idx;
+      visitedStatus[idx] = true;
+
+      const q = questions[idx];
+      document.getElementById("q-counter").textContent = `Question ${idx + 1} of ${questions.length}`;
+      document.getElementById("q-category").textContent = q.category;
+      document.getElementById("q-text").textContent = q.question;
+
+      const codeContainer = document.getElementById("q-code-container");
+      const codeEl = document.getElementById("q-code");
+      if (q.code) {
+        codeEl.textContent = q.code;
+        codeContainer.style.display = "block";
+      } else {
+        codeContainer.style.display = "none";
+      }
+
+      // Render options
+      const optWrapper = document.getElementById("options-wrapper");
+      optWrapper.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+
+      q.options.forEach((opt, optIdx) => {
+        const card = document.createElement("div");
+        card.className = "option-card";
+        if (userAnswers[idx] === optIdx) {
+          card.classList.add("selected");
+        }
+
+        card.onclick = () => selectOption(optIdx);
+
+        card.innerHTML = `
+          <div class="opt-letter">${letters[optIdx]}</div>
+          <div class="opt-text">${opt}</div>
+        `;
+        optWrapper.appendChild(card);
+      });
+
+      // Update Mark button label
+      const markBtn = document.getElementById("btn-mark");
+      markBtn.textContent = markedStatus[idx] ? "Unmark Review" : "ðŸ”– Mark for Review";
+
+      // Nav buttons state
+      document.getElementById("btn-prev").disabled = idx === 0;
+
+      updatePaletteMetrics();
+    }
+
+    function selectOption(optIdx) {
+      userAnswers[currentQIndex] = optIdx;
+      loadQuestion(currentQIndex);
+    }
+
+    function clearCurrentResponse() {
+      userAnswers[currentQIndex] = null;
+      loadQuestion(currentQIndex);
+    }
+
+    function toggleMarkForReview() {
+      markedStatus[currentQIndex] = !markedStatus[currentQIndex];
+      loadQuestion(currentQIndex);
+    }
+
+    function goToPrevQuestion() {
+      if (currentQIndex > 0) {
+        loadQuestion(currentQIndex - 1);
+      }
+    }
+
+    function saveAndNextQuestion() {
+      if (currentQIndex < questions.length - 1) {
+        loadQuestion(currentQIndex + 1);
+      } else {
+        openSubmitModal();
+      }
+    }
+
+    // Modal
+    function openSubmitModal() {
+      let attempted = 0;
+      let marked = 0;
+      userAnswers.forEach((ans, i) => {
+        if (ans !== null) attempted++;
+        if (markedStatus[i]) marked++;
+      });
+
+      document.getElementById("modal-attempted").textContent = attempted;
+      document.getElementById("modal-marked").textContent = marked;
+      document.getElementById("modal-unanswered").textContent = questions.length - attempted;
+      document.getElementById("submit-modal").style.display = "flex";
+    }
+
+    function closeSubmitModal() {
+      document.getElementById("submit-modal").style.display = "none";
+    }
+
+    function confirmSubmitExam() {
+      closeSubmitModal();
+      clearInterval(timerInterval);
+
+      const elapsedSeconds = Math.round((Date.now() - examStartTime) / 1000);
+
+      document.getElementById("exam-arena").style.display = "none";
+      document.getElementById("header-actions").style.display = "none";
+      document.getElementById("report-screen").style.display = "block";
+
+      evaluateResults(elapsedSeconds);
+    }
+
+    function evaluateResults(timeElapsed) {
+      let correctCount = 0;
+      let incorrectCount = 0;
+      let skippedCount = 0;
+
+      questions.forEach((q, idx) => {
+        const userChoice = userAnswers[idx];
+        if (userChoice === null) {
+          skippedCount++;
+        } else if (userChoice === q.correct) {
+          correctCount++;
+        } else {
+          incorrectCount++;
+        }
+      });
+
+      const total = questions.length;
+      const scorePercent = Math.round((correctCount / total) * 100);
+      const isPass = scorePercent >= 70;
+
+      const evalBadge = document.getElementById("eval-badge");
+      evalBadge.textContent = isPass ? "PASSED ASSESSMENT" : "NEEDS IMPROVEMENT";
+      evalBadge.className = isPass ? "score-badge badge-pass" : "score-badge badge-fail";
+
+      document.getElementById("final-score-percent").textContent = `${scorePercent}%`;
+      document.getElementById("final-score-details").textContent = `You scored ${correctCount} out of ${total} questions correctly.`;
+
+      document.getElementById("rep-correct").textContent = correctCount;
+      document.getElementById("rep-incorrect").textContent = incorrectCount;
+      document.getElementById("rep-skipped").textContent = skippedCount;
+
+      const attempted = correctCount + incorrectCount;
+      const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
+      document.getElementById("rep-accuracy").textContent = `${accuracy}%`;
+
+      const m = Math.floor(timeElapsed / 60);
+      const s = timeElapsed % 60;
+      document.getElementById("rep-time").textContent = `${m}m ${s}s`;
+
+      renderReviewSolutions("all");
+      saveSubmissionToDatabase(correctCount, scorePercent, accuracy, timeElapsed, isPass ? "PASS" : "FAIL");
+    }
+
+    function renderReviewSolutions(filter) {
+      const container = document.getElementById("solutions-container");
+      container.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+
+      questions.forEach((q, idx) => {
+        const userChoice = userAnswers[idx];
+        const isSkipped = userChoice === null;
+        const isCorrect = userChoice === q.correct;
+
+        if (filter === "correct" && !isCorrect) return;
+        if (filter === "incorrect" && (isCorrect || isSkipped)) return;
+        if (filter === "skipped" && !isSkipped) return;
+
+        const div = document.createElement("div");
+        div.className = "sol-card";
+
+        let statusBadge = "";
+        if (isSkipped) {
+          statusBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Skipped</span>';
+        } else if (isCorrect) {
+          statusBadge = '<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7;">Correct (+1.00)</span>';
+        } else {
+          statusBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5;">Incorrect (0.00)</span>';
+        }
+
+        let codeMarkup = "";
+        if (q.code) {
+          codeMarkup = `<pre style="margin-bottom: 12px;"><code>${q.code}</code></pre>`;
+        }
+
+        let userAnsText = isSkipped 
+          ? "<em>No answer selected</em>" 
+          : `<strong>${letters[userChoice]}:</strong> ${q.options[userChoice]}`;
+
+        let userAnsClass = isCorrect ? "sol-user-ans is-correct" : "sol-user-ans";
+
+        div.innerHTML = `
+          <div class="sol-header">
+            <span style="font-weight:700; color: #38bdf8;">Question ${idx + 1} (${q.category})</span>
+            ${statusBadge}
+          </div>
+          <div class="sol-q-title">${q.question}</div>
+          ${codeMarkup}
+          <div class="sol-ans-row">
+            <div class="${userAnsClass}">
+              <strong>Your Selection:</strong> ${userAnsText}
+            </div>
+            ${!isCorrect ? `
+              <div class="sol-correct-ans">
+                <strong>Correct Answer:</strong> <strong>${letters[q.correct]}:</strong> ${q.options[q.correct]}
+              </div>
+            ` : ""}
+          </div>
+          <div class="sol-explanation">
+            <strong>Technical Explanation:</strong> ${q.explanation}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function filterReviews(type, btnElement) {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btnElement.classList.add("active");
+      renderReviewSolutions(type);
+    }
+
+    function saveSubmissionToDatabase(correctCount, scorePercent, accuracyPercent, timeElapsedSeconds, evalStatusText) {
+      const dbStatusEl = document.getElementById("db-save-status");
+      if (dbStatusEl) dbStatusEl.innerHTML = "â³ Saving results to Supabase Cloud Database...";
+
+      const letters = ["A", "B", "C", "D"];
+      const answersPayload = questions.map((q, idx) => {
+        const userChoice = userAnswers[idx];
+        return {
+          question_id: q.id,
+          category: q.category,
+          question: q.question,
+          user_answer: userChoice !== null ? letters[userChoice] + ": " + q.options[userChoice] : null,
+          correct_answer: letters[q.correct] + ": " + q.options[q.correct],
+          is_correct: userChoice === q.correct,
+          explanation: q.explanation
+        };
+      });
+
+      const candName = document.getElementById("candidate-name") ? document.getElementById("candidate-name").value.trim() : "Candidate";
+      const candEmail = document.getElementById("candidate-email") ? document.getElementById("candidate-email").value.trim() : "candidate@example.com";
+
+      const payload = {
+        candidate_name: candName || "Candidate",
+        candidate_email: candEmail || "candidate@example.com",
+        quiz_type: "Operating Systems (Phase 1)",
+        score: correctCount,
+        total_questions: questions.length,
+        percentage: scorePercent,
+        accuracy: accuracyPercent,
+        time_spent_seconds: timeElapsedSeconds,
+        evaluation_status: evalStatusText,
+        answers: answersPayload
+      };
+
+      const apiUrl = window.location.origin.startsWith('http')
+        ? '/api/submit-quiz'
+        : '/api/submit-quiz';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (dbStatusEl) {
+            dbStatusEl.innerHTML = 'âœ… <strong>Saved to Supabase Cloud Database!</strong> <a href="/dashboard" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline; margin-left: 10px;">Open Assessment Dashboard â†—</a>';
+          }
+        } else {
+          throw new Error(data.error || 'Server rejected');
+        }
+      })
+      .catch(err => {
+        console.warn('Backend not reached, storing locally:', err);
+        const stored = JSON.parse(localStorage.getItem('quiz_submissions') || '[]');
+        payload.id = stored.length + 1;
+        payload.submitted_at = new Date().toISOString();
+        stored.push(payload);
+        localStorage.setItem('quiz_submissions', JSON.stringify(stored));
+        if (dbStatusEl) {
+          dbStatusEl.innerHTML = 'âš ï¸ Saved locally in browser storage. (Start server to view in Supabase Cloud: <a href="/dashboard" target="_blank" style="color: #38bdf8; text-decoration: underline;">Dashboard</a>)';
+        }
+      });
+    }
+
+    // Keyboard navigation (A, B, C, D)
+    window.addEventListener("keydown", (e) => {
+      if (document.getElementById("exam-arena").style.display !== "flex") return;
+      const key = e.key.toUpperCase();
+      const mapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+      if (mapping[key] !== undefined) {
+        selectOption(mapping[key]);
+      } else if (e.key === "ArrowRight") {
+        saveAndNextQuestion();
+      } else if (e.key === "ArrowLeft") {
+        goToPrevQuestion();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assessment Dashboard — Cloud Database</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --border: #475569;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --accent: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #6366f1, #38bdf8);
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .cloud-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6ee7b7;
+      margin-left: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-secondary { background: var(--surface-light); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: #475569; }
+
+    .btn-accent { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.3); }
+    .btn-accent:hover { background: rgba(56, 189, 248, 0.25); }
+
+    .btn-home { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3); }
+    .btn-home:hover { background: rgba(99, 102, 241, 0.25); }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .stat-badge {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 1.4rem;
+    }
+
+    /* Submissions Card */
+    .main-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-pill.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #151d30;
+      padding: 14px 18px;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid #2d3748;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .status-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .quiz-type-tag {
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      border: none;
+    }
+
+    .btn-view {
+      background: #334155;
+      color: #f8fafc;
+      margin-right: 6px;
+    }
+    .btn-view:hover { background: #475569; }
+
+    .btn-del {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+    .btn-del:hover { background: rgba(239, 68, 68, 0.35); }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 850px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .ans-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .ans-card.is-correct { border-left: 4px solid var(--success); }
+    .ans-card.is-wrong { border-left: 4px solid var(--danger); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo-badge">🗄️</div>
+        <div>
+          <h1>Assessment Dashboard & Leaderboard</h1>
+          <div class="subtitle">
+            Real-time candidate records stored in <code style="color: #38bdf8;">Supabase PostgreSQL</code>
+            <span class="cloud-indicator">🟢 Cloud Connected</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/" class="btn btn-home">🏠 Home</a>
+        <button class="btn btn-secondary" onclick="exportToCSV()">📥 Export to CSV</button>
+        <a href="/js-quiz" class="btn btn-accent">⚡ JS Quiz</a>
+        <a href="/transformer-quiz" class="btn btn-primary">🧠 Transformer</a>
+        <a href="/os-quiz" class="btn" style="background: linear-gradient(135deg, #0284c7, #38bdf8); color: #041026; font-weight: 700;">💻 OS</a>
+        <a href="/finetuning-quiz" class="btn" style="background: linear-gradient(135deg, #8b5cf6, #38bdf8); color: white; font-weight: 700;">🚀 Fine-Tuning</a>
+      </div>
+    </header>
+
+    <!-- Top Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Submissions</div>
+        <div class="stat-val" id="total-count">0</div>
+        <div class="stat-badge">📝</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Score</div>
+        <div class="stat-val" id="avg-score">0%</div>
+        <div class="stat-badge">📊</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Highest Score</div>
+        <div class="stat-val" id="max-score">0 / 30</div>
+        <div class="stat-badge">🏆</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Passing Rate (>=70%)</div>
+        <div class="stat-val" id="pass-rate">0%</div>
+        <div class="stat-badge">✅</div>
+      </div>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="main-card">
+      <div class="card-header">
+        <div style="font-weight: 700; font-size: 1.05rem;">Candidate Assessment Attempts</div>
+        <div class="filter-group">
+          <button class="filter-pill active" onclick="filterSubmissions('all', this)">All Tests</button>
+          <button class="filter-pill" onclick="filterSubmissions('Operating', this)">Operating Systems</button>
+          <button class="filter-pill" onclick="filterSubmissions('JavaScript', this)">JavaScript</button>
+          <button class="filter-pill" onclick="filterSubmissions('Transformer', this)">Transformer</button>
+          <button class="filter-pill" onclick="filterSubmissions('Fine-Tuning', this)">Fine-Tuning</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Candidate</th>
+              <th>Assessment Type</th>
+              <th>Score</th>
+              <th>Percentage</th>
+              <th>Result Status</th>
+              <th>Time Spent</th>
+              <th>Date & Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-tbody">
+            <tr>
+              <td colspan="9" class="empty-state">Loading submissions from cloud database...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Submission View Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Candidate Details</h3>
+        <button class="btn btn-secondary" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-content">
+        Loading...
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allSubmissions = [];
+    let currentFilter = 'all';
+
+    async function loadData() {
+      try {
+        const [subsRes, statsRes] = await Promise.all([
+          fetch('/api/submissions'),
+          fetch('/api/stats')
+        ]);
+        
+        allSubmissions = await subsRes.json();
+        const stats = await statsRes.json();
+
+        // Update stats
+        document.getElementById('total-count').innerText = stats.total_submissions || 0;
+        document.getElementById('avg-score').innerText = stats.avg_percentage ? Math.round(stats.avg_percentage) + '%' : '0%';
+        document.getElementById('max-score').innerText = (stats.max_score || 0) + ' / 30';
+
+        const passRate = stats.total_submissions 
+          ? Math.round((stats.passed_count / stats.total_submissions) * 100) 
+          : 0;
+        document.getElementById('pass-rate').innerText = passRate + '%';
+
+        renderTable();
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        document.getElementById('submissions-tbody').innerHTML = `
+          <tr><td colspan="9" class="empty-state">
+            ⚠️ Failed to connect to cloud database. Make sure the server is running.
+          </td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('submissions-tbody');
+      tbody.innerHTML = '';
+
+      const filtered = allSubmissions.filter(item => {
+        if (currentFilter === 'all') return true;
+        return item.quiz_type.toLowerCase().includes(currentFilter.toLowerCase());
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">
+              No submissions found in cloud database. Take a quiz to record your first score!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        const mins = Math.floor(item.time_spent_seconds / 60);
+        const secs = item.time_spent_seconds % 60;
+        const isPass = item.percentage >= 70;
+
+        tr.innerHTML = `
+          <td style="font-weight: 700; color: #94a3b8;">#${item.id}</td>
+          <td>
+            <strong>${item.candidate_name}</strong><br>
+            <span style="font-size: 0.78rem; color: #94a3b8;">${item.candidate_email || 'N/A'}</span>
+          </td>
+          <td><span class="quiz-type-tag">${item.quiz_type}</span></td>
+          <td style="font-weight: 700;">${item.score} / ${item.total_questions}</td>
+          <td>
+            <span style="font-weight: 800; color: ${isPass ? 'var(--success)' : 'var(--danger)'};">
+              ${Math.round(item.percentage)}%
+            </span>
+          </td>
+          <td>
+            <span class="status-tag ${isPass ? 'status-pass' : 'status-fail'}">
+              ${item.evaluation_status.includes('PASS') ? 'PASS' : 'FAIL'}
+            </span>
+          </td>
+          <td>${mins}m ${secs}s</td>
+          <td style="font-size: 0.82rem; color: #94a3b8;">${new Date(item.submitted_at).toLocaleString()}</td>
+          <td>
+            <button class="btn-sm btn-view" onclick="viewDetails(${item.id})">🔍 View</button>
+            <button class="btn-sm btn-del" onclick="deleteSubmission(${item.id})">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterSubmissions(type, btn) {
+      currentFilter = type;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTable();
+    }
+
+    async function viewDetails(id) {
+      const modal = document.getElementById('detail-modal');
+      const content = document.getElementById('modal-content');
+      modal.style.display = 'flex';
+      content.innerHTML = '<p>Loading attempt details from cloud...</p>';
+
+      try {
+        const res = await fetch(`/api/submissions/${id}`);
+        const data = await res.json();
+        
+        document.getElementById('modal-title').innerText = `${data.candidate_name} — ${data.quiz_type} Result`;
+
+        let answers = [];
+        try { 
+          answers = typeof data.answers_json === 'string' ? JSON.parse(data.answers_json) : data.answers_json;
+        } catch(e) {}
+
+        let answersHtml = '';
+        answers.forEach((ans, idx) => {
+          const isCorrect = ans.is_correct;
+          answersHtml += `
+            <div class="ans-card ${isCorrect ? 'is-correct' : 'is-wrong'}">
+              <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
+                <strong>Q${idx + 1}: ${ans.category || 'Question'}</strong>
+                <span style="font-weight:700; color: ${isCorrect ? 'var(--success)' : 'var(--danger)'};">
+                  ${isCorrect ? '✓ Correct (+1.0)' : '✗ Incorrect'}
+                </span>
+              </div>
+              <div style="margin-bottom: 8px;">${ans.question}</div>
+              <div style="font-size: 0.85rem; color: #94a3b8;">
+                <strong>Candidate Choice:</strong> ${ans.user_answer || 'Skipped'}<br>
+                ${!isCorrect ? `<strong>Correct Answer:</strong> <span style="color: var(--success);">${ans.correct_answer}</span><br>` : ''}
+                <strong>Explanation:</strong> ${ans.explanation}
+              </div>
+            </div>
+          `;
+        });
+
+        content.innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; background: #0b0f19; padding: 14px; border-radius: 8px;">
+            <div>Score: <strong>${data.score} / ${data.total_questions} (${Math.round(data.percentage)}%)</strong></div>
+            <div>Time Spent: <strong>${Math.floor(data.time_spent_seconds / 60)}m ${data.time_spent_seconds % 60}s</strong></div>
+            <div>Status: <strong style="color: ${data.percentage >= 70 ? 'var(--success)' : 'var(--danger)'}">${data.evaluation_status}</strong></div>
+          </div>
+          <h4 style="margin-bottom: 12px;">Submitted Answer Sheet:</h4>
+          ${answersHtml || '<p style="color: #94a3b8;">No detailed answer breakdown available.</p>'}
+        `;
+      } catch (err) {
+        content.innerHTML = `<p style="color: var(--danger);">Failed to load details: ${err.message}</p>`;
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('detail-modal').style.display = 'none';
+    }
+
+    async function deleteSubmission(id) {
+      if (!confirm(`Are you sure you want to delete submission #${id}?`)) return;
+      try {
+        await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
+        loadData();
+      } catch (err) {
+        alert('Failed to delete: ' + err.message);
+      }
+    }
+
+    function exportToCSV() {
+      if (allSubmissions.length === 0) {
+        alert('No data to export!');
+        return;
+      }
+      let csv = 'ID,Candidate Name,Email,Quiz Type,Score,Total Questions,Percentage,Status,Time Spent (Seconds),Submitted At\n';
+      allSubmissions.forEach(row => {
+        csv += `"${row.id}","${row.candidate_name.replace(/"/g, '""')}","${(row.candidate_email||'').replace(/"/g, '""')}","${row.quiz_type}","${row.score}","${row.total_questions}","${row.percentage}","${row.evaluation_status}","${row.time_spent_seconds}","${row.submitted_at}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quiz_submissions_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    // Auto-refresh data on load
+    loadData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1747 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transformer Architecture Assessment â€” "Attention Is All You Need"</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --bg: #0b0f19;
+      --surface: #151d30;
+      --surface-light: #1e293b;
+      --surface-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --purple: #a855f7;
+      --accent: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: white;
+      font-size: 1.1rem;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .timer-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.05em;
+    }
+
+    .timer-container.warning {
+      color: var(--danger);
+      border-color: var(--danger);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 1; }
+      to { opacity: 0.6; }
+    }
+
+    .btn-submit-exam {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit-exam:hover {
+      background: #059669;
+    }
+
+    /* Start / Welcome Screen */
+    .start-screen {
+      max-width: 800px;
+      margin: 40px auto;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      padding: 36px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .start-screen h1 {
+      font-size: 1.85rem;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .meta-card {
+      background: #0b0f19;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .meta-card .val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .meta-card .label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .instructions-list {
+      color: #cbd5e1;
+      line-height: 1.7;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+      padding-left: 20px;
+    }
+
+    .btn-start {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .btn-start:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Arena */
+    .exam-arena {
+      display: none;
+      flex: 1;
+      padding: 20px 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      gap: 24px;
+    }
+
+    .question-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .q-number-pill {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .q-badge-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-category {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .badge-marks {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .question-text {
+      font-size: 1.12rem;
+      line-height: 1.6;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .math-formula {
+      display: block;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 1rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin-bottom: 22px;
+    }
+
+    .options-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: auto;
+    }
+
+    .option-item {
+      background: #0b0f19;
+      border: 1.5px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .option-item:hover {
+      border-color: #64748b;
+      background: #141c2e;
+    }
+
+    .option-item.selected {
+      border-color: #818cf8;
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .option-radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .option-item.selected .option-radio {
+      border-color: #818cf8;
+    }
+
+    .option-radio::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      background: #818cf8;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .option-item.selected .option-radio::after {
+      display: block;
+    }
+
+    .option-key {
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 20px;
+    }
+
+    .option-item.selected .option-key {
+      color: #818cf8;
+    }
+
+    .option-label {
+      font-size: 0.98rem;
+      line-height: 1.4;
+    }
+
+    .question-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface-border);
+    }
+
+    .btn-action {
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border-color: var(--surface-border);
+      color: var(--text-muted);
+    }
+    .btn-clear:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .btn-mark {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      color: #d8b4fe;
+    }
+    .btn-mark:hover {
+      background: rgba(168, 85, 247, 0.25);
+    }
+
+    .btn-nav {
+      background: var(--surface-light);
+      color: var(--text);
+    }
+    .btn-nav:hover:not(:disabled) {
+      background: #334155;
+    }
+
+    .btn-save-next {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-save-next:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Palette */
+    .palette-sidebar {
+      width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .palette-header {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      color: #f1f5f9;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 18px;
+      font-size: 0.78rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .legend-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    .ind-answered { background: var(--success); }
+    .ind-marked { background: var(--purple); }
+    .ind-not-answered { background: var(--danger); }
+    .ind-not-visited { background: #1e293b; border: 1px solid #475569; }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 20px;
+    }
+
+    .palette-btn {
+      height: 42px;
+      background: #0b0f19;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .palette-btn:hover {
+      border-color: #64748b;
+    }
+
+    .palette-btn.active {
+      outline: 2px solid #818cf8;
+      outline-offset: 1px;
+    }
+
+    .palette-btn.answered {
+      background: var(--success) !important;
+      border-color: var(--success) !important;
+      color: #fff !important;
+    }
+
+    .palette-btn.marked {
+      background: var(--purple) !important;
+      border-color: var(--purple) !important;
+      color: #fff !important;
+    }
+
+    .palette-btn.not-answered {
+      background: var(--danger) !important;
+      border-color: var(--danger) !important;
+      color: #fff !important;
+    }
+
+    .summary-card {
+      background: #0b0f19;
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.82rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .summary-metric {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+    .summary-metric strong {
+      color: var(--text);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-dialog {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 520px;
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .modal-dialog h3 {
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      color: #f8fafc;
+    }
+
+    .modal-stats {
+      margin: 18px 0;
+      background: #0b0f19;
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .modal-stat-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* Scorecard & Review */
+    .report-screen {
+      display: none;
+      max-width: 1100px;
+      width: 100%;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .scorecard-banner {
+      background: linear-gradient(135deg, #151d30, #0b0f19);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+
+    .score-badge {
+      display: inline-block;
+      font-size: 3rem;
+      font-weight: 900;
+      color: #818cf8;
+      margin: 10px 0;
+    }
+
+    .evaluation-status {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .metrics-summary-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .mini-stat {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .mini-stat span {
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+
+    .review-filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .solution-item {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .solution-item.correct-card { border-left: 5px solid var(--success); }
+    .solution-item.incorrect-card { border-left: 5px solid var(--danger); }
+    .solution-item.skipped-card { border-left: 5px solid var(--warning); }
+
+    .sol-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+
+    .sol-q-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .sol-ans-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 0.92rem;
+    }
+
+    .sol-user-ans {
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .sol-user-ans.is-correct {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    .sol-correct-ans {
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    .sol-explanation {
+      background: #0b0f19;
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-section">
+      <div class="brand-logo">AI</div>
+      <div>
+        <div class="brand-title">Transformer Architecture Technical Assessment</div>
+        <div class="brand-subtitle">Based on "Attention Is All You Need" (Vaswani et al., 2017)</div>
+      </div>
+    </div>
+    <div class="top-actions" id="header-actions" style="display: none;">
+      <div class="timer-container" id="timer-box">
+        <span>â±ï¸</span>
+        <span id="time-display">30:00</span>
+      </div>
+      <button class="btn-submit-exam" onclick="openSubmitModal()">Finish & Submit Test</button>
+    </div>
+  </header>
+
+  <!-- Stage 1: Welcome / Onboarding Screen -->
+  <div class="start-screen" id="start-screen">
+    <h1>Transformer Research Assessment</h1>
+    <p style="color: var(--text-muted); margin-bottom: 16px;">
+      This assessment evaluates your technical mastery of the foundational paper <strong>"Attention Is All You Need"</strong> located in your notes folder. It tests mathematical foundations, scaled dot-product attention, multi-head mechanisms, positional encodings, computational complexity, and architectural trade-offs.
+    </p>
+
+    <div class="meta-grid">
+      <div class="meta-card">
+        <div class="val">30</div>
+        <div class="label">Total Questions</div>
+      </div>
+      <div class="meta-card">
+        <div class="val">30 Mins</div>
+        <div class="label">Time Allowed</div>
+      </div>
+      <div class="meta-card">
+        <div class="val">70%</div>
+        <div class="label">Pass Benchmark</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: #f1f5f9;">Topics Covered in this Screening:</h3>
+    <ol class="instructions-list">
+      <li><strong>Motivation & RNN Comparison:</strong> Sequential computation bottlenecks, path length ($O(1)$ vs $O(n)$), and parallelization.</li>
+      <li><strong>Attention Mechanics:</strong> Scaled Dot-Product formulation, scaling factor $1/\sqrt{d_k}$, Softmax saturation, Multi-Head projections.</li>
+      <li><strong>Encoder-Decoder Architecture:</strong> $N=6$ stack, LayerNorm, Residual Connections, Feed-Forward Networks, and Causal Masking.</li>
+      <li><strong>Positional Encodings:</strong> Sinusoidal formulations, linear property for relative positions, and permutation invariance.</li>
+      <li><strong>Training & Hyperparameters:</strong> $d_{\text{model}} = 512, d_{ff} = 2048, h = 8$, Adam optimizer, warm-up schedules, Label Smoothing, and Regularization.</li>
+    </ol>
+
+    
+    <!-- Candidate Info Input -->
+    <div style="background: #0f172a; border: 1px solid var(--surface-border); border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 12px;">Candidate Profile</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Candidate Name</label>
+          <input type="text" id="candidate-name" value="Candidate" placeholder="Your Full Name" style="width: 100%; padding: 10px 12px; background: #1e293b; border: 1px solid var(--surface-border); border-radius: 6px; color: #fff; font-size: 0.95rem;" />
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Email ID</label>
+          <input type="email" id="candidate-email" value="candidate@example.com" placeholder="Your Email" style="width: 100%; padding: 10px 12px; background: #1e293b; border: 1px solid var(--surface-border); border-radius: 6px; color: #fff; font-size: 0.95rem;" />
+        </div>
+      </div>
+    </div>
+  
+    <button class="btn-start" onclick="startAssessment()">Start Research Assessment ðŸš€</button>
+  </div>
+
+  <!-- Stage 2: Assessment Arena -->
+  <main class="exam-arena" id="exam-arena">
+    <section class="question-panel">
+      <div class="question-header">
+        <div class="q-number-pill" id="q-counter">Question 1 of 30</div>
+        <div class="q-badge-group">
+          <span class="badge badge-category" id="q-category">Architecture Overview</span>
+          <span class="badge badge-marks">+1.00 / 0.00</span>
+        </div>
+      </div>
+
+      <div class="question-text" id="q-text">Loading question...</div>
+      <div class="math-formula" id="q-formula" style="display: none;"></div>
+      <div class="options-wrapper" id="options-wrapper"></div>
+
+      <div class="question-footer">
+        <div>
+          <button class="btn-action btn-clear" id="btn-clear" onclick="clearCurrentResponse()">Clear Choice</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-action btn-mark" id="btn-mark" onclick="toggleMarkForReview()">ðŸ”– Mark for Review</button>
+          <button class="btn-action btn-nav" id="btn-prev" onclick="goToPrevQuestion()">â† Previous</button>
+          <button class="btn-action btn-save-next" id="btn-next" onclick="saveAndNext()">Save & Next â†’</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar Palette -->
+    <aside class="palette-sidebar">
+      <div class="palette-header">Question Navigation Palette</div>
+      <div class="legend-grid">
+        <div class="legend-item"><div class="legend-indicator ind-answered"></div> Answered</div>
+        <div class="legend-item"><div class="legend-indicator ind-marked"></div> Marked for Review</div>
+        <div class="legend-item"><div class="legend-indicator ind-not-answered"></div> Visited (Unanswered)</div>
+        <div class="legend-item"><div class="legend-indicator ind-not-visited"></div> Not Visited</div>
+      </div>
+
+      <div class="palette-grid" id="palette-grid"></div>
+
+      <div class="summary-card">
+        <div class="summary-metric">Answered: <strong id="summary-answered" style="color: var(--success)">0</strong></div>
+        <div class="summary-metric">Marked: <strong id="summary-marked" style="color: var(--purple)">0</strong></div>
+        <div class="summary-metric">Unanswered: <strong id="summary-unanswered" style="color: var(--danger)">30</strong></div>
+        <div class="summary-metric">Total: <strong>30</strong></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Submit Confirmation Modal -->
+  <div class="modal-overlay" id="submit-modal">
+    <div class="modal-dialog">
+      <h3>Confirm Assessment Submission</h3>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Are you ready to submit your test? You will immediately receive your scorecard and technical review.
+      </p>
+
+      <div class="modal-stats">
+        <div class="modal-stat-row">
+          <span>Total Questions:</span>
+          <strong>30</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Answered:</span>
+          <strong style="color: var(--success);" id="modal-answered-count">0</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Marked for Review:</span>
+          <strong style="color: var(--purple);" id="modal-marked-count">0</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Unanswered:</span>
+          <strong style="color: var(--danger);" id="modal-unanswered-count">30</strong>
+        </div>
+        <div class="modal-stat-row">
+          <span>Time Remaining:</span>
+          <strong id="modal-time-left">30:00</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action btn-nav" onclick="closeSubmitModal()">Return to Exam</button>
+        <button class="btn-submit-exam" onclick="finalizeSubmission()">Yes, Submit Assessment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 3: Scorecard & Solutions Review -->
+  <div class="report-screen" id="report-screen">
+    <div class="scorecard-banner">
+      <div style="text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--text-muted);">
+        Candidate Evaluation Result
+      </div>
+      <div class="score-badge" id="score-display">0 / 30</div>
+      <div class="evaluation-status" id="eval-status">PASS</div>
+      <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto;" id="eval-feedback">
+        Detailed analysis of your answers and paper proficiency.
+      </p>
+
+      <div class="metrics-summary-row">
+        <div class="mini-stat">Accuracy: <span id="stat-accuracy">0%</span></div>
+        <div class="mini-stat">Correct: <span id="stat-correct" style="color: var(--success);">0</span></div>
+        <div class="mini-stat">Incorrect: <span id="stat-incorrect" style="color: var(--danger);">0</span></div>
+        <div class="mini-stat">Skipped: <span id="stat-skipped" style="color: var(--warning);">0</span></div>
+        <div class="mini-stat">Time Spent: <span id="stat-time">0m 0s</span></div>
+      </div>
+    
+      <div id="db-save-status" style="margin-top: 18px; padding: 10px 16px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; font-size: 0.9rem; display: inline-block;">
+        ðŸ’¾ Results will be saved to Supabase Cloud Database automatically.
+      </div>
+  
+    </div>
+
+    <div class="review-filter-bar">
+      <h2 style="font-size: 1.3rem;">Paper Breakdown & Detailed Explanations</h2>
+      <div class="filter-tabs">
+        <button class="filter-btn active" onclick="filterReviews('all', this)">All (30)</button>
+        <button class="filter-btn" onclick="filterReviews('correct', this)">Correct</button>
+        <button class="filter-btn" onclick="filterReviews('incorrect', this)">Incorrect</button>
+        <button class="filter-btn" onclick="filterReviews('skipped', this)">Skipped</button>
+      </div>
+    </div>
+
+    <div id="solutions-container"></div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        id: 1,
+        category: "Core Motivation",
+        question: "According to Vaswani et al. (2017), what was the fundamental computational bottleneck of Recurrent Neural Networks (RNNs/LSTMs) that the Transformer was designed to eliminate?",
+        formula: null,
+        options: [
+          "Inability to compute cross-entropy loss on translation tasks",
+          "Inherently sequential nature (h_t = f(h_{t-1}, x_t)) preventing parallelization across sequence positions during training",
+          "High parameter count exceeding modern GPU memory",
+          "Lack of support for dense word embeddings"
+        ],
+        correct: 1,
+        explanation: "Section 1 of the paper explains that recurrent models inherently generate a sequence of hidden states h_t aligned to steps in computation time. This sequential nature precludes parallelization within training examples, which becomes critical at longer sequence lengths."
+      },
+      {
+        id: 2,
+        category: "Self-Attention Mechanism",
+        question: "What is the correct mathematical formulation for Scaled Dot-Product Attention as defined in Section 3.2.1?",
+        formula: "Attention(Q, K, V) = ?",
+        options: [
+          "softmax(Q * K^T) * V",
+          "softmax((Q * K^T) / sqrt(d_k)) * V",
+          "tanh((Q * K^T) / d_k) * V",
+          "softmax((Q * V^T) / sqrt(d_v)) * K"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.1 defines Scaled Dot-Product Attention as: Attention(Q, K, V) = softmax((QK^T) / sqrt(d_k))V, where queries and keys are of dimension d_k, and values of dimension d_v."
+      },
+      {
+        id: 3,
+        category: "Scaling Factor",
+        question: "Why do the authors scale the dot products by 1 / sqrt(d_k) in Scaled Dot-Product Attention?",
+        formula: "1 / sqrt(d_k)",
+        options: [
+          "To reduce the matrix multiplication computational complexity from O(n^2) to O(n)",
+          "Because for large d_k, dot products grow large in magnitude, pushing the softmax function into regions with extremely small gradients",
+          "To enforce unitary normalization on the Query and Key vector magnitudes",
+          "To prevent numerical underflow when d_k approaches zero"
+        ],
+        correct: 1,
+        explanation: "In Section 3.2.1, the authors suspect that for large values of d_k, the dot products grow large in magnitude, pushing the softmax function into regions with extremely small gradients (vanishing gradients). To counteract this effect, they scale the dot products by 1 / sqrt(d_k)."
+      },
+      {
+        id: 4,
+        category: "Multi-Head Attention",
+        question: "In the Base Transformer model, how many attention heads (h) are used, and what is the dimensionality of each head (d_k = d_v) when d_model = 512?",
+        formula: "d_k = d_v = d_model / h",
+        options: [
+          "h = 4 heads, d_k = 128",
+          "h = 8 heads, d_k = 64",
+          "h = 16 heads, d_k = 32",
+          "h = 12 heads, d_k = 768"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.2 specifies that in the base model: h = 8 parallel attention layers (heads). For each of these, d_k = d_v = d_model / h = 512 / 8 = 64."
+      },
+      {
+        id: 5,
+        category: "Multi-Head Attention",
+        question: "What is the primary benefit of Multi-Head Attention over single-head attention with full dimensionality?",
+        formula: null,
+        options: [
+          "It lowers the overall theoretical computational complexity to O(n log n)",
+          "It allows the model to jointly attend to information from different representation subspaces at different positions",
+          "It eliminates the need for positional encodings",
+          "It ensures the model can only attend to adjacent neighboring tokens"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.2 explains: 'Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions. With a single attention head, averaging inhibits this.'"
+      },
+      {
+        id: 6,
+        category: "Encoder Architecture",
+        question: "How many identical layers (N) comprise the encoder stack, and what sub-layers are present in each layer?",
+        formula: "Encoder Stack: N = ?",
+        options: [
+          "N = 12; each containing Self-Attention, Convolution, and FFN",
+          "N = 6; each containing Multi-Head Self-Attention and a Position-wise Feed-Forward Network",
+          "N = 6; each containing Masked Self-Attention and Cross-Attention",
+          "N = 4; each containing Recurrent LSTM and Self-Attention"
+        ],
+        correct: 1,
+        explanation: "Section 3.1: 'The encoder is composed of a stack of N = 6 identical layers. Each layer has two sub-layers: a multi-head self-attention mechanism, and a simple, position-wise fully connected feed-forward network.'"
+      },
+      {
+        id: 7,
+        category: "Normalization & Residuals",
+        question: "What is the exact residual and normalization operation applied around each sub-layer in both the encoder and decoder?",
+        formula: null,
+        options: [
+          "BatchNorm(x + Sublayer(x))",
+          "LayerNorm(x + Sublayer(x))",
+          "LayerNorm(Sublayer(BatchNorm(x)))",
+          "Dropout(x) + Sublayer(LayerNorm(x))"
+        ],
+        correct: 1,
+        explanation: "Section 3.1 states: 'We employ a residual connection around each of the two sub-layers, followed by layer normalization. That is, the output of each sub-layer is LayerNorm(x + Sublayer(x)).'"
+      },
+      {
+        id: 8,
+        category: "Decoder Architecture",
+        question: "What third sub-layer is added to each decoder layer that is NOT present in the encoder?",
+        formula: null,
+        options: [
+          "Convolutional Filter sub-layer",
+          "Multi-Head Cross-Attention over the output of the encoder stack",
+          "Recurrent memory cell sub-layer",
+          "Global Max-Pooling sub-layer"
+        ],
+        correct: 1,
+        explanation: "Section 3.1: In the decoder, in addition to the two sub-layers in each encoder layer, the decoder inserts a third sub-layer which performs multi-head attention over the output of the encoder stack (cross-attention)."
+      },
+      {
+        id: 9,
+        category: "Causal Masking",
+        question: "Why is Masked Multi-Head Self-Attention required in the decoder stack?",
+        formula: null,
+        options: [
+          "To mask out padding tokens from computing loss",
+          "To prevent positions from attending to subsequent (future) positions, preserving the autoregressive property",
+          "To speed up matrix multiplication by pruning 50% of the weights",
+          "To prevent the decoder from looking at the encoder's output"
+        ],
+        correct: 1,
+        explanation: "Section 3.1: 'We modify the self-attention sub-layer in the decoder stack to prevent positions from attending to subsequent positions... This masking ensures that the predictions for position i can depend only on the known outputs at positions less than i.'"
+      },
+      {
+        id: 10,
+        category: "Cross-Attention",
+        question: "In the Encoder-Decoder Cross-Attention sub-layer, where do the Queries (Q), Keys (K), and Values (V) originate?",
+        formula: null,
+        options: [
+          "Q comes from the input embeddings; K and V come from positional encoding",
+          "Q comes from the previous decoder sub-layer; K and V come from the output of the encoder",
+          "Q, K, and V all come from the encoder",
+          "Q and K come from the encoder; V comes from the decoder"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.3: 'In encoder-decoder attention layers, the queries come from the previous decoder layer, and the memory keys and values come from the output of the encoder. This allows every position in the decoder to attend over all positions in the input sequence.'"
+      },
+      {
+        id: 11,
+        category: "Feed-Forward Networks",
+        question: "What is the mathematical definition and inner dimension (d_ff) of the Position-wise Feed-Forward Network in the base model?",
+        formula: "FFN(x) = max(0, x * W_1 + b_1) * W_2 + b_2",
+        options: [
+          "d_ff = 1024 with GELU activation",
+          "d_ff = 2048 with ReLU activation (input/output dimension d_model = 512)",
+          "d_ff = 512 with Sigmoid activation",
+          "d_ff = 4096 with Tanh activation"
+        ],
+        correct: 1,
+        explanation: "Section 3.3: 'FFN(x) = max(0, xW_1 + b_1)W_2 + b_2. While the linear transformations are the same across different positions, they use different parameters from layer to layer. The dimensionality of input and output is d_model = 512, and the inner-layer has dimensionality d_ff = 2048.'"
+      },
+      {
+        id: 12,
+        category: "Positional Encoding",
+        question: "Why must positional encodings be added to the input embeddings in the Transformer?",
+        formula: null,
+        options: [
+          "Because standard word embeddings cannot represent words with more than 5 characters",
+          "Because the self-attention architecture contains no recurrence and no convolution, making it permutation-invariant without positional information",
+          "To normalize the variance of token embeddings to 1.0",
+          "To allow backpropagation to update the learning rate"
+        ],
+        correct: 1,
+        explanation: "Section 3.5: 'Since our model contains no recurrence and no convolution, in order for the model to make use of the order of the sequence, we must inject some information about the relative or absolute position of the tokens in the sequence.'"
+      },
+      {
+        id: 13,
+        category: "Positional Encoding",
+        question: "What functions are used to generate the fixed sinusoidal positional encodings in Section 3.5?",
+        formula: "PE_(pos, 2i) = sin(pos / 10000^(2i/d_model)), PE_(pos, 2i+1) = cos(pos / 10000^(2i/d_model))",
+        options: [
+          "Exponential decay functions",
+          "Sine functions for even indices (2i) and Cosine functions for odd indices (2i+1)",
+          "Polynomial spline interpolation",
+          "Sawtooth and square wave functions"
+        ],
+        correct: 1,
+        explanation: "Section 3.5: The authors use sine and cosine functions of different frequencies: PE_(pos, 2i) = sin(pos / 10000^(2i/d_model)) and PE_(pos, 2i+1) = cos(pos / 10000^(2i/d_model))."
+      },
+      {
+        id: 14,
+        category: "Positional Encoding",
+        question: "What specific mathematical property motivated the authors to choose sinusoidal positional encodings?",
+        formula: "PE_(pos + k)",
+        options: [
+          "The eigenvalues of sinusoidal matrices are always strictly 1",
+          "For any fixed offset k, PE_(pos+k) can be represented as a linear function of PE_pos",
+          "They consume zero parameters and zero GPU memory during inference",
+          "They automatically eliminate the need for Layer Normalization"
+        ],
+        correct: 1,
+        explanation: "Section 3.5: 'We chose this version because we hypothesized it would allow the model to easily learn to attend by relative positions, since for any fixed offset k, PE_(pos+k) can be represented as a linear function of PE_pos.'"
+      },
+      {
+        id: 15,
+        category: "Positional Encoding",
+        question: "When comparing learned positional embeddings against fixed sinusoidal encodings in Table 3, what did the authors observe?",
+        formula: null,
+        options: [
+          "Learned embeddings performed significantly better (by +4.2 BLEU)",
+          "Sinusoidal encodings performed significantly better (by +5.1 BLEU)",
+          "Both produced nearly identical results, but sinusoidal allows extrapolation to sequence lengths longer than encountered during training",
+          "Learned embeddings caused the model to diverge during training"
+        ],
+        correct: 2,
+        explanation: "Section 3.5: 'We also experimented with using learned positional embeddings instead, and found that the two versions produced nearly identical results. We chose the sinusoidal version because it may allow the model to extrapolate to sequence lengths longer than the ones encountered during training.'"
+      },
+      {
+        id: 16,
+        category: "Computational Complexity",
+        question: "According to Table 1, what is the per-layer computational complexity of a Self-Attention layer for sequence length n and representation dimension d?",
+        formula: "Complexity per Layer",
+        options: [
+          "O(n * d^2)",
+          "O(n^2 * d)",
+          "O(n^2 * d^2)",
+          "O(d * log(n))"
+        ],
+        correct: 1,
+        explanation: "Table 1 in Section 4: Self-Attention has complexity per layer of O(n^2 * d), whereas Recurrent layers require O(n * d^2). When sequence length n is smaller than d, self-attention is faster."
+      },
+      {
+        id: 17,
+        category: "Path Length & Dependencies",
+        question: "What is the maximum path length between any two token positions in Self-Attention compared to a standard Recurrent network?",
+        formula: "Maximum Path Length",
+        options: [
+          "Self-Attention: O(1); Recurrent: O(n)",
+          "Self-Attention: O(n); Recurrent: O(1)",
+          "Self-Attention: O(log_k(n)); Recurrent: O(n)",
+          "Self-Attention: O(sqrt(n)); Recurrent: O(n^2)"
+        ],
+        correct: 0,
+        explanation: "Table 1 and Section 4 explain that a self-attention layer connects all positions with a constant number O(1) of sequentially executed operations, whereas a recurrent layer requires O(n) sequential operations and has maximum path length O(n)."
+      },
+      {
+        id: 18,
+        category: "Embeddings & Weight Tying",
+        question: "In Section 3.4, how are weights shared between the embedding layers and the pre-softmax linear transformation?",
+        formula: null,
+        options: [
+          "No weights are shared; each layer has completely independent weight matrices",
+          "The model shares the same weight matrix between the two embedding layers (input and output) and the pre-softmax linear transformation",
+          "Only the encoder input embeddings and decoder input embeddings share weights",
+          "Weights are shared only between query and key projection matrices"
+        ],
+        correct: 1,
+        explanation: "Section 3.4: 'Similarly to [30], we use learned embeddings to convert the input tokens and output tokens to vectors of dimension d_model. We also use the usual learned linear transformation and softmax function to convert the decoder output to predicted next-token probabilities. In our model, we share the same weight matrix between the two embedding layers and the pre-softmax linear transformation.'"
+      },
+      {
+        id: 19,
+        category: "Embedding Scaling",
+        question: "What scaling factor is multiplied with the learned embedding weights before adding positional encodings?",
+        formula: "Embedding * ?",
+        options: [
+          "sqrt(d_model)",
+          "1 / sqrt(d_model)",
+          "d_model^2",
+          "1 / d_k"
+        ],
+        correct: 0,
+        explanation: "Section 3.4 states: 'In the embedding layers, we multiply those weights by sqrt(d_model).'"
+      },
+      {
+        id: 20,
+        category: "Regularization: Dropout",
+        question: "What value of Residual Dropout (P_drop) was applied to the outputs of each sub-layer and the sums of embeddings?",
+        formula: "P_drop = ?",
+        options: [
+          "P_drop = 0.5",
+          "P_drop = 0.1",
+          "P_drop = 0.01",
+          "P_drop = 0.25"
+        ],
+        correct: 1,
+        explanation: "Section 5.4: 'We apply dropout to the output of each sub-layer, before it is added to the sub-layer input and normalized. In addition, we apply dropout to the sums of the embeddings and the positional encodings in both the encoder and decoder stacks. For the base model, we use a rate of P_drop = 0.1.'"
+      },
+      {
+        id: 21,
+        category: "Regularization: Label Smoothing",
+        question: "The authors employed label smoothing with epsilon_ls = 0.1 during training. What effect did this have on perplexity and BLEU score?",
+        formula: "epsilon_ls = 0.1",
+        options: [
+          "It improved perplexity but hurt the BLEU score",
+          "It hurt perplexity (as the model learns to be more unsure) but improved accuracy and BLEU score",
+          "It had no measurable effect on either metric",
+          "It caused gradients to explode during training"
+        ],
+        correct: 1,
+        explanation: "Section 5.4: 'During training, we employed label smoothing of value epsilon_ls = 0.1. This hurts perplexity, as the model learns to be more unsure, but improves accuracy and BLEU score.'"
+      },
+      {
+        id: 22,
+        category: "Optimizer",
+        question: "Which optimizer and beta parameters were used to train the models in Section 5.3?",
+        formula: "Adam Optimizer",
+        options: [
+          "SGD with momentum = 0.9",
+          "Adam with beta_1 = 0.9, beta_2 = 0.98, and epsilon = 10^-9",
+          "RMSprop with alpha = 0.99",
+          "AdamW with beta_1 = 0.9, beta_2 = 0.999, and weight decay = 0.01"
+        ],
+        correct: 1,
+        explanation: "Section 5.3: 'We used the Adam optimizer [20] with beta_1 = 0.9, beta_2 = 0.98 and epsilon = 10^-9.'"
+      },
+      {
+        id: 23,
+        category: "Learning Rate Schedule",
+        question: "How did the learning rate vary over the course of training according to formula (3)?",
+        formula: "lrate = d_model^(-0.5) * min(step_num^(-0.5), step_num * warmup_steps^(-1.5))",
+        options: [
+          "Constant learning rate with exponential decay every 10 epochs",
+          "Linear increase for the first warmup_steps (4000), followed by decay proportional to the inverse square root of the step number",
+          "Cosine annealing schedule from 0 to 100,000 steps",
+          "Step decay by a factor of 10 every 20,000 steps"
+        ],
+        correct: 1,
+        explanation: "Section 5.3: The learning rate increases linearly for the first warmup_steps (4000 steps) training steps, and decreases thereafter proportionally to the inverse square root of the step number."
+      },
+      {
+        id: 24,
+        category: "Training Hardware & Speed",
+        question: "On what hardware was the Base Transformer model trained, and for how long?",
+        formula: null,
+        options: [
+          "8 NVIDIA P100 GPUs for 12 hours (100,000 steps)",
+          "1,024 Google TPU v4s for 2 weeks",
+          "Single consumer NVIDIA GTX 1080 for 5 days",
+          "64 NVIDIA V100 GPUs for 72 hours"
+        ],
+        correct: 0,
+        explanation: "Section 5.2: 'We trained our base models on one machine with 8 NVIDIA P100 GPUs. For our base models using the hyperparameters described throughout the paper, each training step took about 0.4 seconds. We trained the base models for a total of 100,000 steps or 12 hours.'"
+      },
+      {
+        id: 25,
+        category: "Empirical Results",
+        question: "What translation benchmark did the Transformer Big model achieve on the WMT 2014 English-to-German translation task?",
+        formula: "WMT 2014 En-De",
+        options: [
+          "28.4 BLEU (improving by over 2.0 BLEU over the previous best ensemble)",
+          "18.5 BLEU",
+          "35.8 BLEU",
+          "45.2 BLEU"
+        ],
+        correct: 0,
+        explanation: "Section 6.1 and Table 2: On the WMT 2014 English-to-German translation task, the big transformer model establishes a new state-of-the-art BLEU score of 28.4, improving over existing best results, including ensembles, by more than 2.0 BLEU."
+      },
+      {
+        id: 26,
+        category: "Attention Variants: Additive vs Dot-Product",
+        question: "How does Dot-Product (multiplicative) Attention compare theoretically and practically to Additive Attention (Bahdanau attention)?",
+        formula: null,
+        options: [
+          "Additive attention is much faster because it uses no matrix multiplications",
+          "While theoretically similar in complexity, dot-product attention is much faster and more space-efficient in practice because it can be implemented using highly optimized matrix multiplication code",
+          "Dot-product attention only works for sequences shorter than 32 tokens",
+          "Additive attention cannot be used with multiple attention heads"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.1: 'While the two are similar in theoretical complexity, dot-product attention is much faster and more space-efficient in practice, because it can be implemented using highly optimized matrix multiplication code.'"
+      },
+      {
+        id: 27,
+        category: "Inference & Generation",
+        question: "During auto-regressive generation (inference), what decoding strategy and beam search parameters were used in Section 6.1?",
+        formula: null,
+        options: [
+          "Pure greedy decoding (argmax)",
+          "Top-k sampling with temperature = 0.7",
+          "Beam search with beam size of 4 and length penalty alpha = 0.6",
+          "Beam search with beam size of 100 and no length penalty"
+        ],
+        correct: 2,
+        explanation: "Section 6.1: 'For the WMT 2014 translation tasks, we used beam search with a beam size of 4 and length penalty alpha = 0.6 (setting chosen after experimentation on the development set).'"
+      },
+      {
+        id: 28,
+        category: "Decoder Mask Implementation",
+        question: "How is the causal masking mathematically implemented in Scaled Dot-Product Attention before applying Softmax?",
+        formula: "Masking in softmax(QK^T / sqrt(d_k) + M)",
+        options: [
+          "Multiplying illegal future positions by 0",
+          "Setting illegal future positions to negative infinity (-inf) so softmax evaluates their attention weights to 0",
+          "Subtracting 1000 from the diagonal elements",
+          "Setting the query vectors of future tokens to NaN"
+        ],
+        correct: 1,
+        explanation: "Section 3.2.1: 'We implement this inside of scaled dot-product attention by masking out (setting to -inf) all values in the input of the softmax which correspond to illegal connections.' Because e^(-inf) = 0, the attention weights for future tokens become zero."
+      },
+      {
+        id: 29,
+        category: "Big Model Hyperparameters",
+        question: "In Table 3 (Transformer Big model), how were the model dimensions scaled compared to the Base model?",
+        formula: "Transformer (big)",
+        options: [
+          "d_model = 512, d_ff = 2048, h = 8 (unchanged)",
+          "d_model = 1024, d_ff = 4096, h = 16 (doubled dimensions and heads)",
+          "d_model = 2048, d_ff = 8192, h = 32",
+          "d_model = 768, d_ff = 3072, h = 12"
+        ],
+        correct: 1,
+        explanation: "Table 3 lists the hyperparameters: Base model uses d_model = 512, d_ff = 2048, h = 8. The Big model scales to d_model = 1024, d_ff = 4096, and h = 16 heads."
+      },
+      {
+        id: 30,
+        category: "Architectural Impact",
+        question: "Which of the following describes how subsequent landmark models adopted the architecture introduced in 'Attention Is All You Need'?",
+        formula: null,
+        options: [
+          "BERT adopted the Encoder stack only, GPT adopted the Decoder stack only, and T5/BART retained the full Encoder-Decoder stack",
+          "BERT adopted the Decoder stack only, while GPT adopted the Encoder stack only",
+          "All subsequent LLMs abandoned self-attention in favor of dilated convolutions",
+          "The Transformer architecture was only applicable to machine translation and could not transfer to language modeling"
+        ],
+        correct: 0,
+        explanation: "The Transformer became the foundation for all modern LLMs: BERT is an encoder-only masked language model, the GPT series are autoregressive decoder-only models, and T5 / BART retain the full encoder-decoder structure for sequence-to-sequence tasks."
+      }
+    ];
+
+    // State
+    let currentIndex = 0;
+    const userAnswers = new Array(questions.length).fill(null);
+    const markedForReview = new Array(questions.length).fill(false);
+    const visitedQuestions = new Array(questions.length).fill(false);
+
+    let totalSeconds = 30 * 60;
+    let timerInterval = null;
+    let startTime = null;
+
+    const startScreen = document.getElementById("start-screen");
+    const examArena = document.getElementById("exam-arena");
+    const headerActions = document.getElementById("header-actions");
+    const reportScreen = document.getElementById("report-screen");
+    const timeDisplay = document.getElementById("time-display");
+    const timerBox = document.getElementById("timer-box");
+
+    const qCounter = document.getElementById("q-counter");
+    const qCategory = document.getElementById("q-category");
+    const qText = document.getElementById("q-text");
+    const qFormula = document.getElementById("q-formula");
+    const optionsWrapper = document.getElementById("options-wrapper");
+
+    const btnClear = document.getElementById("btn-clear");
+    const btnMark = document.getElementById("btn-mark");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+
+    const paletteGrid = document.getElementById("palette-grid");
+    const summaryAnswered = document.getElementById("summary-answered");
+    const summaryMarked = document.getElementById("summary-marked");
+    const summaryUnanswered = document.getElementById("summary-unanswered");
+
+    function startAssessment() {
+      startScreen.style.display = "none";
+      headerActions.style.display = "flex";
+      examArena.style.display = "flex";
+      startTime = Date.now();
+
+      buildPalette();
+      renderQuestion(0);
+      startTimer();
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        totalSeconds--;
+        if (totalSeconds <= 0) {
+          clearInterval(timerInterval);
+          finalizeSubmission();
+          return;
+        }
+
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        timeDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (totalSeconds <= 300) {
+          timerBox.classList.add("warning");
+        }
+      }, 1000);
+    }
+
+    function buildPalette() {
+      paletteGrid.innerHTML = "";
+      questions.forEach((q, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "palette-btn";
+        btn.id = `palette-btn-${idx}`;
+        btn.innerText = idx + 1;
+        btn.onclick = () => jumpToQuestion(idx);
+        paletteGrid.appendChild(btn);
+      });
+      updatePaletteUI();
+    }
+
+    function updatePaletteUI() {
+      let answeredCount = 0;
+      let markedCount = 0;
+      let unattemptedCount = 0;
+
+      questions.forEach((_, idx) => {
+        const btn = document.getElementById(`palette-btn-${idx}`);
+        if (!btn) return;
+
+        btn.className = "palette-btn";
+        if (idx === currentIndex) {
+          btn.classList.add("active");
+        }
+
+        if (markedForReview[idx]) {
+          btn.classList.add("marked");
+          markedCount++;
+        } else if (userAnswers[idx] !== null) {
+          btn.classList.add("answered");
+          answeredCount++;
+        } else if (visitedQuestions[idx]) {
+          btn.classList.add("not-answered");
+          unattemptedCount++;
+        } else {
+          unattemptedCount++;
+        }
+      });
+
+      summaryAnswered.innerText = answeredCount;
+      summaryMarked.innerText = markedCount;
+      summaryUnanswered.innerText = questions.length - answeredCount;
+    }
+
+    function renderQuestion(index) {
+      currentIndex = index;
+      visitedQuestions[index] = true;
+      const q = questions[index];
+
+      qCounter.innerText = `Question ${index + 1} of ${questions.length}`;
+      qCategory.innerText = q.category;
+      qText.innerText = q.question;
+
+      if (q.formula) {
+        qFormula.innerText = q.formula;
+        qFormula.style.display = "block";
+      } else {
+        qFormula.style.display = "none";
+      }
+
+      optionsWrapper.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+      const currentSelected = userAnswers[index];
+
+      q.options.forEach((optText, optIdx) => {
+        const optCard = document.createElement("div");
+        optCard.className = `option-item ${currentSelected === optIdx ? 'selected' : ''}`;
+        optCard.onclick = () => selectOption(optIdx);
+
+        optCard.innerHTML = `
+          <div class="option-radio"></div>
+          <span class="option-key">${letters[optIdx]}</span>
+          <span class="option-label">${optText}</span>
+        `;
+        optionsWrapper.appendChild(optCard);
+      });
+
+      btnClear.disabled = userAnswers[index] === null;
+      btnMark.style.background = markedForReview[index] ? "rgba(168, 85, 247, 0.35)" : "rgba(168, 85, 247, 0.15)";
+      btnMark.innerHTML = markedForReview[index] ? "âœ“ Marked for Review" : "ðŸ”– Mark for Review";
+
+      btnPrev.disabled = index === 0;
+      btnNext.innerText = index === questions.length - 1 ? "Review / Submit ðŸ" : "Save & Next â†’";
+
+      updatePaletteUI();
+    }
+
+    function selectOption(optIndex) {
+      userAnswers[currentIndex] = optIndex;
+      document.querySelectorAll(".option-item").forEach((card, idx) => {
+        card.classList.toggle("selected", idx === optIndex);
+      });
+      btnClear.disabled = false;
+      updatePaletteUI();
+    }
+
+    function clearCurrentResponse() {
+      userAnswers[currentIndex] = null;
+      document.querySelectorAll(".option-item").forEach(card => {
+        card.classList.remove("selected");
+      });
+      btnClear.disabled = true;
+      updatePaletteUI();
+    }
+
+    function toggleMarkForReview() {
+      markedForReview[currentIndex] = !markedForReview[currentIndex];
+      renderQuestion(currentIndex);
+    }
+
+    function saveAndNext() {
+      if (currentIndex < questions.length - 1) {
+        renderQuestion(currentIndex + 1);
+      } else {
+        openSubmitModal();
+      }
+    }
+
+    function goToPrevQuestion() {
+      if (currentIndex > 0) {
+        renderQuestion(currentIndex - 1);
+      }
+    }
+
+    function jumpToQuestion(index) {
+      renderQuestion(index);
+    }
+
+    function openSubmitModal() {
+      let answered = 0;
+      let marked = 0;
+      userAnswers.forEach((ans, idx) => {
+        if (ans !== null) answered++;
+        if (markedForReview[idx]) marked++;
+      });
+
+      document.getElementById("modal-answered-count").innerText = answered;
+      document.getElementById("modal-marked-count").innerText = marked;
+      document.getElementById("modal-unanswered-count").innerText = questions.length - answered;
+      document.getElementById("modal-time-left").innerText = timeDisplay.innerText;
+
+      document.getElementById("submit-modal").style.display = "flex";
+    }
+
+    function closeSubmitModal() {
+      document.getElementById("submit-modal").style.display = "none";
+    }
+
+    function finalizeSubmission() {
+      closeSubmitModal();
+      clearInterval(timerInterval);
+
+      headerActions.style.display = "none";
+      examArena.style.display = "none";
+      reportScreen.style.display = "block";
+
+      const timeElapsedSeconds = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
+      const minsSpent = Math.floor(timeElapsedSeconds / 60);
+      const secsSpent = timeElapsedSeconds % 60;
+      document.getElementById("stat-time").innerText = `${minsSpent}m ${secsSpent}s`;
+
+      let correctCount = 0;
+      let incorrectCount = 0;
+      let skippedCount = 0;
+
+      questions.forEach((q, idx) => {
+        if (userAnswers[idx] === null) {
+          skippedCount++;
+        } else if (userAnswers[idx] === q.correct) {
+          correctCount++;
+        } else {
+          incorrectCount++;
+        }
+      });
+
+      const scorePercent = Math.round((correctCount / questions.length) * 100);
+      document.getElementById("score-display").innerText = `${correctCount} / ${questions.length}`;
+      document.getElementById("stat-accuracy").innerText = `${scorePercent}%`;
+      document.getElementById("stat-correct").innerText = correctCount;
+      document.getElementById("stat-incorrect").innerText = incorrectCount;
+      document.getElementById("stat-skipped").innerText = skippedCount;
+
+      const evalStatus = document.getElementById("eval-status");
+      const evalFeedback = document.getElementById("eval-feedback");
+
+      if (scorePercent >= 85) {
+        evalStatus.innerText = "PASSED (Senior AI / LLM Engineer Level)";
+        evalStatus.style.color = "#10b981";
+        evalFeedback.innerText = "Exceptional mastery of the Transformer architecture! You have a rigorous understanding of self-attention mathematical formulation, multi-head subspaces, positional frequencies, and training dynamics.";
+      } else if (scorePercent >= 70) {
+        evalStatus.innerText = "PASSED (Solid Foundations)";
+        evalStatus.style.color = "#38bdf8";
+        evalFeedback.innerText = "Good job! You cleared the 70% threshold. You understand the primary architecture well. Review the detailed explanations below to master mathematical subtleties like scaling factors and complexity proofs.";
+      } else {
+        evalStatus.innerText = "NEEDS REVIEW (Below 70% Benchmark)";
+        evalStatus.style.color = "#ef4444";
+        evalFeedback.innerText = "You have familiarized yourself with Transformer concepts, but reviewing Sections 3.2, 3.5, and Table 1 of the paper will strengthen your grasp on attention formulas and positional encodings.";
+      }
+
+      renderReviewSolutions("all");
+      saveSubmissionToDatabase(correctCount, scorePercent, timeElapsedSeconds, evalStatus.innerText);
+    }
+
+    function renderReviewSolutions(filter) {
+      const container = document.getElementById("solutions-container");
+      container.innerHTML = "";
+      const letters = ["A", "B", "C", "D"];
+
+      questions.forEach((q, idx) => {
+        const userChoice = userAnswers[idx];
+        const isCorrect = userChoice === q.correct;
+        const isSkipped = userChoice === null;
+
+        if (filter === "correct" && !isCorrect) return;
+        if (filter === "incorrect" && (isCorrect || isSkipped)) return;
+        if (filter === "skipped" && !isSkipped) return;
+
+        let cardClass = "skipped-card";
+        let statusBadge = `<span style="color: var(--warning); font-weight:700;">Skipped</span>`;
+        if (!isSkipped) {
+          if (isCorrect) {
+            cardClass = "correct-card";
+            statusBadge = `<span style="color: var(--success); font-weight:700;">âœ“ Correct (+1.0)</span>`;
+          } else {
+            cardClass = "incorrect-card";
+            statusBadge = `<span style="color: var(--danger); font-weight:700;">âœ— Incorrect (0.0)</span>`;
+          }
+        }
+
+        const div = document.createElement("div");
+        div.className = `solution-item ${cardClass}`;
+
+        let formulaMarkup = "";
+        if (q.formula) {
+          formulaMarkup = `<div class="math-formula" style="margin-bottom: 12px;">${q.formula}</div>`;
+        }
+
+        let userAnsText = isSkipped 
+          ? "<em>No answer selected</em>" 
+          : `<strong>${letters[userChoice]}:</strong> ${q.options[userChoice]}`;
+
+        let userAnsClass = isCorrect ? "sol-user-ans is-correct" : "sol-user-ans";
+
+        div.innerHTML = `
+          <div class="sol-header">
+            <span style="font-weight:700; color: #818cf8;">Question ${idx + 1} (${q.category})</span>
+            ${statusBadge}
+          </div>
+          <div class="sol-q-title">${q.question}</div>
+          ${formulaMarkup}
+          <div class="sol-ans-row">
+            <div class="${userAnsClass}">
+              <strong>Your Selection:</strong> ${userAnsText}
+            </div>
+            ${!isCorrect ? `
+              <div class="sol-correct-ans">
+                <strong>Correct Answer:</strong> <strong>${letters[q.correct]}:</strong> ${q.options[q.correct]}
+              </div>
+            ` : ""}
+          </div>
+          <div class="sol-explanation">
+            <strong>Paper Citation & Explanation:</strong> ${q.explanation}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function filterReviews(type, btnElement) {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btnElement.classList.add("active");
+      renderReviewSolutions(type);
+    }
+  
+    function saveSubmissionToDatabase(correctCount, scorePercent, timeElapsedSeconds, evalStatusText) {
+      const dbStatusEl = document.getElementById("db-save-status");
+      if (dbStatusEl) dbStatusEl.innerHTML = "â³ Saving results to Supabase Cloud Database...";
+
+      const letters = ["A", "B", "C", "D"];
+      const answersPayload = questions.map((q, idx) => {
+        const userChoice = userAnswers[idx];
+        return {
+          question_id: q.id,
+          category: q.category,
+          question: q.question,
+          user_answer: userChoice !== null ? letters[userChoice] + ": " + q.options[userChoice] : null,
+          correct_answer: letters[q.correct] + ": " + q.options[q.correct],
+          is_correct: userChoice === q.correct,
+          explanation: q.explanation
+        };
+      });
+
+      const candName = document.getElementById("candidate-name") ? document.getElementById("candidate-name").value.trim() : "Candidate";
+      const candEmail = document.getElementById("candidate-email") ? document.getElementById("candidate-email").value.trim() : "candidate@example.com";
+
+      const payload = {
+        candidate_name: candName || "Candidate",
+        candidate_email: candEmail || "candidate@example.com",
+        quiz_type: "Transformer Architecture",
+        score: correctCount,
+        total_questions: questions.length,
+        percentage: scorePercent,
+        accuracy: scorePercent,
+        time_spent_seconds: timeElapsedSeconds,
+        evaluation_status: evalStatusText,
+        answers: answersPayload
+      };
+
+      const apiUrl = window.location.origin.startsWith('http')
+        ? '/api/submit-quiz'
+        : '/api/submit-quiz';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (dbStatusEl) {
+            dbStatusEl.innerHTML = 'âœ… <strong>Saved to Supabase Cloud Database!</strong> <a href="/dashboard" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline; margin-left: 10px;">Open Results Dashboard â†—</a>';
+          }
+        } else {
+          throw new Error(data.error || 'Server rejected');
+        }
+      })
+      .catch(err => {
+        console.warn('Backend not reached, caching in localStorage:', err);
+        const stored = JSON.parse(localStorage.getItem('quiz_submissions') || '[]');
+        payload.id = stored.length + 1;
+        payload.submitted_at = new Date().toISOString();
+        stored.push(payload);
+        localStorage.setItem('quiz_submissions', JSON.stringify(stored));
+        if (dbStatusEl) {
+          dbStatusEl.innerHTML = 'âš ï¸ Saved locally in browser storage. (Launch server to view Supabase Cloud records: <a href="/dashboard" target="_blank" style="color: #38bdf8; text-decoration: underline;">Dashboard</a>)';
+        }
+      });
+    }
+  
+  </script>
+</body>
+</html>

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#6366f1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
-  <title>Quiz Platform — Cloud Edition</title>
+  <title>Quiz Platform</title>
   <style>
     :root {
       --bg: #0b0f19;
@@ -25,286 +25,616 @@
       --accent: #38bdf8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    html, body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-    .hero {
-      text-align: center;
-      padding: 60px 24px 40px;
-    }
-    .hero-badge {
-      display: inline-flex;
+    /* ─── Splash Screen ─── */
+    .splash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      padding: 6px 16px;
-      border-radius: 9999px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #a5b4fc;
-      margin-bottom: 20px;
+      justify-content: center;
+      z-index: 999;
+      transition: opacity 0.5s, transform 0.5s;
     }
-    .hero h1 {
-      font-size: 2.8rem;
+    .splash.hide {
+      opacity: 0;
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+    .splash-logo {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #6366f1, #38bdf8);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
       font-weight: 900;
-      letter-spacing: -0.02em;
+      color: white;
+      margin-bottom: 20px;
+      animation: pulse-logo 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes pulse-logo {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+    .splash h2 {
+      font-size: 1.6rem;
+      font-weight: 900;
       background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
     }
-    .hero p {
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      max-width: 620px;
-      margin: 0 auto 30px;
-      line-height: 1.6;
+    .splash p { color: var(--text-muted); font-size: 0.9rem; }
+    .splash-loader {
+      margin-top: 30px;
+      width: 120px;
+      height: 4px;
+      background: var(--surface-light);
+      border-radius: 4px;
+      overflow: hidden;
     }
-    .hero-stats {
-      display: flex;
-      justify-content: center;
-      gap: 28px;
-      flex-wrap: wrap;
+    .splash-loader::after {
+      content: '';
+      display: block;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #38bdf8);
+      border-radius: 4px;
+      animation: load-bar 1.2s ease-in-out infinite;
     }
-    .hero-stat {
-      text-align: center;
-    }
-    .hero-stat .val {
-      font-size: 1.8rem;
-      font-weight: 900;
-      color: var(--text);
-    }
-    .hero-stat .label {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+    @keyframes load-bar {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(300%); }
     }
 
-    .quiz-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px 60px;
-    }
+    /* ─── App Container ─── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 70px; }
 
-    .quiz-card {
+    /* ─── Top Nav ─── */
+    .top-bar {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
       display: flex;
-      flex-direction: column;
-      transition: all 0.25s ease;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .top-bar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-bar-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1, #38bdf8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: white;
+      font-size: 1rem;
+    }
+    .top-bar-title { font-size: 1.1rem; font-weight: 800; }
+    .top-bar-subtitle { font-size: 0.7rem; color: var(--text-muted); }
+    .profile-btn {
+      width: 38px; height: 38px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    /* ─── Pages ─── */
+    .page { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Welcome / Home Page ─── */
+    .welcome-card {
+      background: linear-gradient(135deg, #1e1b4b, #0f172a);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      margin-bottom: 24px;
       position: relative;
       overflow: hidden;
     }
-    .quiz-card::before {
+    .welcome-card::before {
+      content: '';
+      position: absolute;
+      top: -50%; right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 60%);
+    }
+    .welcome-greeting {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 6px;
+      position: relative;
+    }
+    .welcome-sub {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      position: relative;
+    }
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+      position: relative;
+    }
+    .quick-stat {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .quick-stat .qs-val { font-size: 1.5rem; font-weight: 900; }
+    .quick-stat .qs-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ─── Quiz Cards (Home) ─── */
+    .quiz-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
+    .quiz-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .quiz-item:hover, .quiz-item:active {
+      border-color: #64748b;
+      transform: scale(1.01);
+    }
+    .qi-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      flex-shrink: 0;
+    }
+    .qi-icon.js { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(239,68,68,0.2)); }
+    .qi-icon.tf { background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2)); }
+    .qi-icon.os { background: linear-gradient(135deg, rgba(2,132,199,0.2), rgba(56,189,248,0.2)); }
+    .qi-icon.ft { background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(56,189,248,0.2)); }
+    .qi-info { flex: 1; }
+    .qi-title { font-weight: 700; font-size: 1rem; margin-bottom: 3px; }
+    .qi-meta { font-size: 0.78rem; color: var(--text-muted); }
+    .qi-arrow { color: var(--text-muted); font-size: 1.2rem; }
+
+    /* ─── Recent Activity ─── */
+    .activity-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .act-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .act-icon.pass { background: rgba(16,185,129,0.15); }
+    .act-icon.fail { background: rgba(239,68,68,0.15); }
+    .act-info { flex: 1; }
+    .act-title { font-weight: 600; font-size: 0.88rem; }
+    .act-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .act-score { font-weight: 800; font-size: 0.95rem; }
+    .empty-activity {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ─── Explore Page ─── */
+    .explore-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .explore-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 4px;
     }
-    .quiz-card:hover {
-      border-color: #64748b;
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-    .quiz-card.js::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-    .quiz-card.transformer::before { background: linear-gradient(90deg, #6366f1, #ec4899); }
-    .quiz-card.os::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
-    .quiz-card.finetuning::before { background: linear-gradient(90deg, #8b5cf6, #38bdf8); }
-
-    .card-icon {
-      font-size: 2.4rem;
-      margin-bottom: 16px;
-    }
-    .card-title {
-      font-size: 1.3rem;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-    .card-desc {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin-bottom: 20px;
-      flex: 1;
-    }
-    .card-meta {
-      display: flex;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-    .meta-pill {
-      background: rgba(255, 255, 255, 0.06);
+    .explore-card.js::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+    .explore-card.tf::before { background: linear-gradient(90deg, #6366f1, #ec4899); }
+    .explore-card.os::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+    .explore-card.ft::before { background: linear-gradient(90deg, #8b5cf6, #38bdf8); }
+    .explore-icon { font-size: 2rem; margin-bottom: 12px; }
+    .explore-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 6px; }
+    .explore-desc { font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; }
+    .explore-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .etag {
+      background: rgba(255,255,255,0.06);
       border: 1px solid var(--border);
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 9999px;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: 600;
       color: var(--text-muted);
     }
-    .card-btn {
+    .explore-btn {
       display: block;
       width: 100%;
-      padding: 14px;
+      padding: 13px;
       text-align: center;
       border-radius: 10px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       text-decoration: none;
       color: white;
-      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
     }
-    .card-btn.js-btn { background: linear-gradient(135deg, #f59e0b, #ef4444); }
-    .card-btn.js-btn:hover { opacity: 0.9; }
-    .card-btn.transformer-btn { background: linear-gradient(135deg, #6366f1, #ec4899); }
-    .card-btn.transformer-btn:hover { opacity: 0.9; }
-    .card-btn.os-btn { background: linear-gradient(135deg, #0284c7, #38bdf8); }
-    .card-btn.os-btn:hover { opacity: 0.9; }
-    .card-btn.finetuning-btn { background: linear-gradient(135deg, #8b5cf6, #38bdf8); }
-    .card-btn.finetuning-btn:hover { opacity: 0.9; }
+    .explore-btn.js { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .explore-btn.tf { background: linear-gradient(135deg, #6366f1, #ec4899); }
+    .explore-btn.os { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+    .explore-btn.ft { background: linear-gradient(135deg, #8b5cf6, #38bdf8); }
 
-    .bottom-bar {
-      text-align: center;
-      padding: 24px;
+    /* ─── Bottom Navigation ─── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
       border-top: 1px solid var(--border);
-      margin-top: auto;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 12px;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
-    .bottom-bar a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
-    }
-    .bottom-bar a:hover { text-decoration: underline; }
-
-    .cloud-badge {
-      display: inline-flex;
+    .nav-item {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.82rem;
+      gap: 3px;
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: 10px;
+      transition: all 0.2s;
+      text-decoration: none;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.68rem;
       font-weight: 600;
-      color: #6ee7b7;
-      margin-top: 16px;
     }
+    .nav-item .nav-icon { font-size: 1.3rem; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item.active .nav-icon { transform: scale(1.1); }
   </style>
 </head>
 <body>
 
-  <div class="hero">
-    <div class="hero-badge">☁️ Powered by Supabase Cloud Database</div>
-    <h1>Technical Quiz Platform</h1>
-    <p>
-      Test your knowledge in JavaScript, Transformer Architecture, Operating Systems,
-      and LLM Fine-Tuning. All results stored securely in the cloud — accessible from anywhere.
-    </p>
-    <div class="hero-stats" id="hero-stats">
-      <div class="hero-stat"><div class="val" id="h-total">—</div><div class="label">Total Attempts</div></div>
-      <div class="hero-stat"><div class="val" id="h-avg">—</div><div class="label">Avg Score</div></div>
-      <div class="hero-stat"><div class="val" id="h-pass">—</div><div class="label">Pass Rate</div></div>
-      <div class="hero-stat"><div class="val" id="h-quizzes">4</div><div class="label">Quizzes Available</div></div>
-    </div>
-    <div class="cloud-badge">🟢 Cloud Database Connected — Data persists across devices</div>
+  <!-- Splash Screen -->
+  <div class="splash" id="splash">
+    <div class="splash-logo">Q</div>
+    <h2>Quiz Platform</h2>
+    <p>Loading your dashboard...</p>
+    <div class="splash-loader"></div>
   </div>
 
-  <div class="quiz-grid">
-    <div class="quiz-card js">
-      <div class="card-icon">⚡</div>
-      <div class="card-title">JavaScript Assessment</div>
-      <div class="card-desc">
-        Deep-dive into closures, prototypes, event loop, async/await, ES6+ features,
-        and advanced JS patterns used in real-world applications.
+  <!-- App -->
+  <div class="app">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-bar-brand">
+        <div class="top-bar-logo">Q</div>
+        <div>
+          <div class="top-bar-title" id="page-title">Home</div>
+          <div class="top-bar-subtitle">Quiz Platform • Cloud Edition</div>
+        </div>
       </div>
-      <div class="card-meta">
-        <span class="meta-pill">30 Questions</span>
-        <span class="meta-pill">30 Minutes</span>
-        <span class="meta-pill">70% to Pass</span>
-      </div>
-      <a href="/js-quiz" class="card-btn js-btn">Start JavaScript Quiz →</a>
+      <div class="profile-btn">👤</div>
     </div>
 
-    <div class="quiz-card transformer">
-      <div class="card-icon">🧠</div>
-      <div class="card-title">Transformer Architecture</div>
-      <div class="card-desc">
-        Based on "Attention Is All You Need" — self-attention mechanics, multi-head
-        projections, positional encodings, encoder-decoder architecture, and training dynamics.
+    <!-- Page: Home -->
+    <div class="page active" id="page-home">
+      <div class="welcome-card">
+        <div class="welcome-greeting" id="greeting">Welcome back! 👋</div>
+        <div class="welcome-sub">Ready to test your skills today?</div>
+        <div class="quick-stats">
+          <div class="quick-stat">
+            <div class="qs-val" id="qs-total">—</div>
+            <div class="qs-label">Total Attempts</div>
+          </div>
+          <div class="quick-stat">
+            <div class="qs-val" id="qs-avg">—</div>
+            <div class="qs-label">Avg Score</div>
+          </div>
+          <div class="quick-stat">
+            <div class="qs-val" id="qs-pass">—</div>
+            <div class="qs-label">Pass Rate</div>
+          </div>
+          <div class="quick-stat">
+            <div class="qs-val">4</div>
+            <div class="qs-label">Quizzes</div>
+          </div>
+        </div>
       </div>
-      <div class="card-meta">
-        <span class="meta-pill">30 Questions</span>
-        <span class="meta-pill">30 Minutes</span>
-        <span class="meta-pill">70% to Pass</span>
+
+      <div class="section-title">📝 Quick Start</div>
+      <div class="quiz-list">
+        <a href="/js-quiz" class="quiz-item">
+          <div class="qi-icon js">⚡</div>
+          <div class="qi-info">
+            <div class="qi-title">JavaScript Assessment</div>
+            <div class="qi-meta">30 Questions • 30 Minutes • 70% to Pass</div>
+          </div>
+          <div class="qi-arrow">›</div>
+        </a>
+        <a href="/transformer-quiz" class="quiz-item">
+          <div class="qi-icon tf">🧠</div>
+          <div class="qi-info">
+            <div class="qi-title">Transformer Architecture</div>
+            <div class="qi-meta">30 Questions • 30 Minutes • 70% to Pass</div>
+          </div>
+          <div class="qi-arrow">›</div>
+        </a>
+        <a href="/os-quiz" class="quiz-item">
+          <div class="qi-icon os">💻</div>
+          <div class="qi-info">
+            <div class="qi-title">Operating Systems</div>
+            <div class="qi-meta">30 Questions • 30 Minutes • 70% to Pass</div>
+          </div>
+          <div class="qi-arrow">›</div>
+        </a>
+        <a href="/finetuning-quiz" class="quiz-item">
+          <div class="qi-icon ft">🚀</div>
+          <div class="qi-info">
+            <div class="qi-title">LLM Fine-Tuning</div>
+            <div class="qi-meta">30 Questions • 30 Minutes • 70% to Pass</div>
+          </div>
+          <div class="qi-arrow">›</div>
+        </a>
       </div>
-      <a href="/transformer-quiz" class="card-btn transformer-btn">Start Transformer Quiz →</a>
+
+      <div class="section-title">🕐 Recent Activity</div>
+      <div id="recent-activity">
+        <div class="empty-activity">No attempts yet. Take your first quiz! 🚀</div>
+      </div>
     </div>
 
-    <div class="quiz-card os">
-      <div class="card-icon">💻</div>
-      <div class="card-title">Operating Systems</div>
-      <div class="card-desc">
-        Process management, memory allocation, file systems, CPU scheduling,
-        deadlocks, virtual memory, and OS kernel internals.
+    <!-- Page: Explore -->
+    <div class="page" id="page-explore">
+      <div class="section-title" style="font-size: 1.3rem; margin-bottom: 20px;">🔍 Explore Quizzes</div>
+
+      <div class="explore-card js">
+        <div class="explore-icon">⚡</div>
+        <div class="explore-title">JavaScript Assessment</div>
+        <div class="explore-desc">Deep-dive into closures, prototypes, event loop, async/await, ES6+ features, and advanced JS patterns used in real-world applications.</div>
+        <div class="explore-tags">
+          <span class="etag">Closures</span><span class="etag">Promises</span><span class="etag">Event Loop</span><span class="etag">Prototypes</span><span class="etag">ES6+</span>
+        </div>
+        <a href="/js-quiz" class="explore-btn js">Start JavaScript Quiz →</a>
       </div>
-      <div class="card-meta">
-        <span class="meta-pill">30 Questions</span>
-        <span class="meta-pill">30 Minutes</span>
-        <span class="meta-pill">70% to Pass</span>
+
+      <div class="explore-card tf">
+        <div class="explore-icon">🧠</div>
+        <div class="explore-title">Transformer Architecture</div>
+        <div class="explore-desc">Based on "Attention Is All You Need" — self-attention mechanics, multi-head projections, positional encodings, and training dynamics.</div>
+        <div class="explore-tags">
+          <span class="etag">Self-Attention</span><span class="etag">Multi-Head</span><span class="etag">Positional Encoding</span><span class="etag">LayerNorm</span>
+        </div>
+        <a href="/transformer-quiz" class="explore-btn tf">Start Transformer Quiz →</a>
       </div>
-      <a href="/os-quiz" class="card-btn os-btn">Start OS Quiz →</a>
+
+      <div class="explore-card os">
+        <div class="explore-icon">💻</div>
+        <div class="explore-title">Operating Systems</div>
+        <div class="explore-desc">Process management, memory allocation, file systems, CPU scheduling, deadlocks, virtual memory, and OS kernel internals.</div>
+        <div class="explore-tags">
+          <span class="etag">Scheduling</span><span class="etag">Deadlocks</span><span class="etag">Virtual Memory</span><span class="etag">Paging</span>
+        </div>
+        <a href="/os-quiz" class="explore-btn os">Start OS Quiz →</a>
+      </div>
+
+      <div class="explore-card ft">
+        <div class="explore-icon">🚀</div>
+        <div class="explore-title">LLM Fine-Tuning</div>
+        <div class="explore-desc">LoRA, QLoRA, PEFT, dataset preparation, training hyperparameters, RLHF, DPO, and production deployment strategies.</div>
+        <div class="explore-tags">
+          <span class="etag">LoRA</span><span class="etag">QLoRA</span><span class="etag">RLHF</span><span class="etag">DPO</span><span class="etag">PEFT</span>
+        </div>
+        <a href="/finetuning-quiz" class="explore-btn ft">Start Fine-Tuning Quiz →</a>
+      </div>
     </div>
 
-    <div class="quiz-card finetuning">
-      <div class="card-icon">🚀</div>
-      <div class="card-title">LLM Fine-Tuning</div>
-      <div class="card-desc">
-        LoRA, QLoRA, PEFT, dataset preparation, training hyperparameters,
-        evaluation metrics, RLHF, DPO, and production deployment strategies.
+    <!-- Page: Results -->
+    <div class="page" id="page-results">
+      <div class="section-title" style="font-size: 1.3rem; margin-bottom: 20px;">📊 Your Results</div>
+      <div id="results-list">
+        <div class="empty-activity">Loading results from cloud...</div>
       </div>
-      <div class="card-meta">
-        <span class="meta-pill">30 Questions</span>
-        <span class="meta-pill">30 Minutes</span>
-        <span class="meta-pill">70% to Pass</span>
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="/dashboard" style="color: var(--accent); font-weight: 700; text-decoration: none; font-size: 0.95rem;">
+          Open Full Dashboard →
+        </a>
       </div>
-      <a href="/finetuning-quiz" class="card-btn finetuning-btn">Start Fine-Tuning Quiz →</a>
     </div>
   </div>
 
-  <div class="bottom-bar">
-    <a href="/dashboard">📊 Open Results Dashboard & Leaderboard →</a>
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="switchPage('home')">
+      <span class="nav-icon">🏠</span>
+      Home
+    </button>
+    <button class="nav-item" onclick="switchPage('explore')">
+      <span class="nav-icon">🔍</span>
+      Explore
+    </button>
+    <button class="nav-item" onclick="switchPage('results')">
+      <span class="nav-icon">📊</span>
+      Results
+    </button>
+    <button class="nav-item" onclick="window.location.href='/dashboard'">
+      <span class="nav-icon">🏆</span>
+      Dashboard
+    </button>
   </div>
 
   <script>
-    // Load live stats from cloud
+    // ─── Splash Screen ───
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('hide');
+    }, 1500);
+
+    // ─── Greeting ───
+    const hour = new Date().getHours();
+    const greetText = hour < 12 ? 'Good Morning! ☀️' : hour < 17 ? 'Good Afternoon! 🌤️' : 'Good Evening! 🌙';
+    document.getElementById('greeting').textContent = greetText;
+
+    // ─── Page Navigation ───
+    const pageTitles = { home: 'Home', explore: 'Explore Quizzes', results: 'Your Results' };
+
+    function switchPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('page-title').textContent = pageTitles[page] || 'Home';
+      if (page === 'results') loadResults();
+    }
+
+    // ─── Load Stats ───
     fetch('/api/stats')
       .then(r => r.json())
       .then(stats => {
-        document.getElementById('h-total').textContent = stats.total_submissions || 0;
-        document.getElementById('h-avg').textContent = stats.avg_percentage ? Math.round(stats.avg_percentage) + '%' : '0%';
+        document.getElementById('qs-total').textContent = stats.total_submissions || 0;
+        document.getElementById('qs-avg').textContent = stats.avg_percentage ? Math.round(stats.avg_percentage) + '%' : '0%';
         const passRate = stats.total_submissions
           ? Math.round((stats.passed_count / stats.total_submissions) * 100) + '%'
           : '0%';
-        document.getElementById('h-pass').textContent = passRate;
+        document.getElementById('qs-pass').textContent = passRate;
       })
       .catch(() => {
-        document.getElementById('h-total').textContent = '0';
-        document.getElementById('h-avg').textContent = '0%';
-        document.getElementById('h-pass').textContent = '0%';
+        document.getElementById('qs-total').textContent = '0';
+        document.getElementById('qs-avg').textContent = '0%';
+        document.getElementById('qs-pass').textContent = '0%';
       });
-  </script>
-  <script>
-    // Register Service Worker for PWA install
+
+    // ─── Load Recent Activity ───
+    fetch('/api/submissions')
+      .then(r => r.json())
+      .then(data => {
+        const container = document.getElementById('recent-activity');
+        if (!data || data.length === 0) return;
+
+        const recent = data.slice(0, 5);
+        container.innerHTML = '';
+        recent.forEach(item => {
+          const isPass = item.percentage >= 70;
+          const div = document.createElement('div');
+          div.className = 'activity-item';
+          div.innerHTML = `
+            <div class="act-icon ${isPass ? 'pass' : 'fail'}">${isPass ? '✅' : '❌'}</div>
+            <div class="act-info">
+              <div class="act-title">${item.quiz_type}</div>
+              <div class="act-sub">${item.candidate_name} • ${new Date(item.submitted_at).toLocaleDateString()}</div>
+            </div>
+            <div class="act-score" style="color: ${isPass ? 'var(--success)' : 'var(--danger)'}">
+              ${Math.round(item.percentage)}%
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      })
+      .catch(() => {});
+
+    // ─── Load Results Page ───
+    function loadResults() {
+      fetch('/api/submissions')
+        .then(r => r.json())
+        .then(data => {
+          const container = document.getElementById('results-list');
+          if (!data || data.length === 0) {
+            container.innerHTML = '<div class="empty-activity">No results yet. Take a quiz first!</div>';
+            return;
+          }
+          container.innerHTML = '';
+          data.forEach(item => {
+            const isPass = item.percentage >= 70;
+            const mins = Math.floor(item.time_spent_seconds / 60);
+            const secs = item.time_spent_seconds % 60;
+            const div = document.createElement('div');
+            div.className = 'activity-item';
+            div.style.cursor = 'pointer';
+            div.onclick = () => window.location.href = '/dashboard';
+            div.innerHTML = `
+              <div class="act-icon ${isPass ? 'pass' : 'fail'}">${isPass ? '✅' : '❌'}</div>
+              <div class="act-info">
+                <div class="act-title">${item.quiz_type}</div>
+                <div class="act-sub">${item.candidate_name} • ${mins}m ${secs}s • ${new Date(item.submitted_at).toLocaleDateString()}</div>
+              </div>
+              <div class="act-score" style="color: ${isPass ? 'var(--success)' : 'var(--danger)'}">
+                ${item.score}/${item.total_questions} (${Math.round(item.percentage)}%)
+              </div>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(() => {
+          document.getElementById('results-list').innerHTML = '<div class="empty-activity">Failed to load results</div>';
+        });
+    }
+
+    // ─── Service Worker ───
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ Service Worker registered'))
-        .catch(err => console.log('SW registration failed:', err));
+        .then(() => console.log('✅ SW registered'))
+        .catch(err => console.log('SW failed:', err));
     }
   </script>
 </body>

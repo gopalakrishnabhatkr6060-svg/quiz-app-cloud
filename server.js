@@ -17,15 +17,14 @@ const PORT = process.env.PORT || 3000;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
+let supabase = null;
 if (!supabaseUrl || !supabaseKey || supabaseUrl === 'your_supabase_project_url') {
-  console.error('❌ Missing Supabase credentials!');
-  console.error('   Copy .env.example to .env and fill in your Supabase URL and Anon Key.');
-  console.error('   Get them from: https://supabase.com → Your Project → Settings → API');
-  process.exit(1);
+  console.warn('⚠️ Missing Supabase credentials! API endpoints will return errors.');
+  console.warn('   Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
+} else {
+  supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('✅ Supabase client initialized:', supabaseUrl);
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-console.log('✅ Supabase client initialized:', supabaseUrl);
 
 // ─── Middleware ─────────────────────────────────────────────
 app.use(express.json({ limit: '5mb' }));
@@ -43,6 +42,7 @@ app.use((req, res, next) => {
 // ─── API: Submit Quiz ──────────────────────────────────────
 app.post('/api/submit-quiz', async (req, res) => {
   try {
+    if (!supabase) return res.status(500).json({ success: false, error: 'Database not configured' });
     const data = req.body;
     const submission = {
       candidate_name: (data.candidate_name || 'Anonymous Candidate').trim(),

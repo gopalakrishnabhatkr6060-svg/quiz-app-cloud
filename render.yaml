@@ -2,10 +2,13 @@ services:
   - type: web
     name: quiz-app-cloud
     runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        value: https://spwawvrbzhpnyqylrbbu.supabase.co
       - key: SUPABASE_ANON_KEY
-        sync: false
+        value: sb_publishable_2WBUFQ1HrpbzQJ0gSk7tew_TXeMlQH-
+      - key: NODE_ENV
+        value: production

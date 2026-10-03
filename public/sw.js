@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quiz-platform-v1';
+const CACHE_NAME = 'quiz-platform-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
